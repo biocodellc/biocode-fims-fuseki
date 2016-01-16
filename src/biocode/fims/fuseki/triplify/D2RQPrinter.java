@@ -5,9 +5,9 @@ import biocode.fims.digester.Attribute;
 import biocode.fims.digester.Entity;
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Relation;
+import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
 import biocode.fims.settings.DBsystem;
-import biocode.fims.settings.FimsConnector;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -24,14 +24,14 @@ public class D2RQPrinter {
     private Mapping mapping;
     private DeepRoots dRoots = null;
     private List<String> colNames;
-    private FimsConnector fimsConnector;
+    private ProcessController processController;
 
-    public D2RQPrinter(Mapping mapping, PrintWriter pw, Connection connection, DeepRoots dRoots, FimsConnector fimsConnector) {
+    public D2RQPrinter(Mapping mapping, PrintWriter pw, Connection connection, DeepRoots dRoots, ProcessController processController) {
         this.mapping = mapping;
         this.pw = pw;
         this.connection = connection;
         this.dRoots = dRoots;
-        this.fimsConnector = fimsConnector;
+        this.processController = processController;
     }
 
     /**
@@ -286,7 +286,7 @@ public class D2RQPrinter {
         // Use the DeepRoots System to lookup Key
         String bcid = null;
         if (dRoots != null) {
-            bcid = dRoots.lookupPrefix(fimsConnector, entity);
+            bcid = dRoots.lookupPrefix(entity, processController.getUserId());
         }
 
         // Use the default namespace value if dRoots is unsuccesful...

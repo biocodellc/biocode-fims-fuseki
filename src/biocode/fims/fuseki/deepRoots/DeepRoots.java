@@ -1,10 +1,10 @@
 package biocode.fims.fuseki.deepRoots;
 
+import biocode.fims.bcid.Bcid;
+import biocode.fims.bcid.BcidMinter;
+import biocode.fims.bcid.ExpeditionMinter;
 import biocode.fims.digester.Entity;
-import biocode.fims.settings.FimsConnector;
 import biocode.fims.settings.FimsPrinter;
-import biocode.fims.settings.SettingsManager;
-import org.json.simple.JSONObject;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,11 +23,6 @@ public class DeepRoots {
     private String date;
     private Integer projectId;
     private  String expeditionCode;
-    private static SettingsManager sm;
-
-    static {
-        sm = SettingsManager.getInstance();
-    }
 
     public DeepRoots(Integer projectId, String expeditionCode) {
         this.projectId = projectId;
@@ -131,37 +126,27 @@ public class DeepRoots {
      *
      * @return returns the Bcid for this conceptAlias in this DeepRoots file
      */
-    public String lookupPrefix(FimsConnector fimsConnector, Entity entity) {
-        SettingsManager sm = SettingsManager.getInstance();
-        String fimsCoreRoot = sm.retrieveValue("fimsCoreRoot");
-        String identifier;
-
+    public String lookupPrefix(Entity entity, Integer userId) {
         Iterator it = data.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pairs = (Map.Entry) it.next();
-            //if (pairs.getKey().toString().trim().equals(entity.getConceptURI().trim())) {
             if (pairs.getKey().toString().trim().equals(entity.getConceptAlias().trim())) {
-                identifier =  (String) pairs.getValue();
-                return identifier;
+                String postfix =  (String) pairs.getValue();
+                return postfix;
             }
         }
         FimsPrinter.out.println("\tWarning: " + entity.getConceptAlias() + " cannot be mapped in Deep Roots, attempting to create mapping");
         // Create a mapping in the deeproots system for this URI
         FimsPrinter.out.println("\tCreating bcid root for " + entity.getConceptAlias() + " with resource type = " + entity.getConceptURI());
         // Mint the Bcid
-        String params =
-                "title=" + entity.getConceptAlias() + "&" +
-                        "resourceType=" + entity.getConceptAlias() + "&" +
-                        "suffixPassThrough=true";
-        // Mint the data group
-        JSONObject response = fimsConnector.postJSONObject(fimsCoreRoot + "id/groupService/", params);
-        identifier = (String) response.get("identifier");
-        // Associate this Bcid with this expedition
+        BcidMinter bcidMinter = new BcidMinter(true);
 
-        String attachParams = "expeditionCode=" + expeditionCode + "&" +
-                "bcid=" + identifier + "&" +
-                "projectId=" + projectId;
-        fimsConnector.postJSONObject(fimsCoreRoot + "id/expeditionService/associate", attachParams);
+        String identifier = bcidMinter.createEntityBcid(new Bcid(userId, entity.getConceptAlias(), "", null, null, false, false));
+        bcidMinter.close();
+        // Associate this Bcid with this expedition
+        ExpeditionMinter expedition = new ExpeditionMinter();
+        expedition.attachReferenceToExpedition(expeditionCode, identifier, projectId);
+        expedition.close();
 
         // Add this element to the data string so we don't keep trying to add it in the loop above
         //data.put(new URI(entity.getConceptURI()),entity.getConceptAlias());

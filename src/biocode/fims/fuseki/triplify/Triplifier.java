@@ -1,5 +1,6 @@
 package biocode.fims.fuseki.triplify;
 
+import biocode.fims.digester.Mapping;
 import biocode.fims.fimsExceptions.FimsRuntimeException;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
@@ -28,7 +29,6 @@ public class Triplifier {
     private String updateOutputFile;
     private String filenamePrefix;
     private DeepRoots dRoots = null;
-    private FimsConnector fimsConnector;
     private ProcessController processController;
 
     private static Logger logger = LoggerFactory.getLogger(Triplifier.class);
@@ -39,10 +39,9 @@ public class Triplifier {
      * @param filenamePrefix
      * @param outputFolder
      */
-    public Triplifier(String filenamePrefix, String outputFolder, FimsConnector fimsConnector, ProcessController processController) {
+    public Triplifier(String filenamePrefix, String outputFolder, ProcessController processController) {
         this.outputFolder = outputFolder;
         this.filenamePrefix = filenamePrefix;
-        this.fimsConnector = fimsConnector;
         this.processController = processController;
     }
 
@@ -81,7 +80,7 @@ public class Triplifier {
         FimsPrinter.out.println(status);
 
         // Write the model
-        model = new ModelD2RQ(FileUtils.toURL(getMapping(filenamePrefix, true)),
+        model = new ModelD2RQ(FileUtils.toURL(getMapping(true)),
                 FileUtils.langN3, "urn:x-biscicol:");
         model.setNsPrefix("ark", "http://ezid.cdlib.org/id/ark");
         // Write the model as simply a Turtle file
@@ -104,11 +103,10 @@ public class Triplifier {
     /**
      * Construct the mapping file for D2RQ to read
      *
-     * @param filenamePrefix
      * @param verifyFile
      * @return
      */
-    private String getMapping(String filenamePrefix, Boolean verifyFile) {
+    private String getMapping(Boolean verifyFile) {
         if (verifyFile)
             connection.verifyFile();
 
@@ -116,7 +114,8 @@ public class Triplifier {
         try {
             PrintWriter pw = new PrintWriter(mapFile);
             TabularDataReader tdr = processController.getValidation().getTabularDataReader();
-            new D2RQPrinter(processController.getValidation().getMapping(), pw, connection, dRoots, fimsConnector).printD2RQ(tdr.getColNames());
+            Mapping mapping = processController.getValidation().getMapping();
+            new D2RQPrinter(mapping, pw, connection, dRoots, processController).printD2RQ(tdr.getColNames());
             pw.close();
         } catch (FileNotFoundException e) {
             throw new FimsRuntimeException(500, e);
@@ -141,11 +140,9 @@ public class Triplifier {
 
     /**
      * create a DeepRoots object based on results returned from the biocode-fims DeepRoots service
-     * @param projectId
-     * @param expeditionCode
      */
-    // TODO: put this into a settings file & run before triplifier
-    public void runDeepRoots(Integer projectId, String expeditionCode) {
-        dRoots = new DeepRootsReader().createRootData(fimsConnector, projectId, expeditionCode);
+    public void runDeepRoots() {
+        dRoots = new DeepRootsReader().createRootData(processController.getProjectId(),
+                processController.getExpeditionCode());
     }
 }
