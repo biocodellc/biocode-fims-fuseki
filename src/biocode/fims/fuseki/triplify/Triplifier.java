@@ -132,7 +132,7 @@ public class Triplifier {
         processController.appendStatus(status + "<br>");
         FimsPrinter.out.println(status);
 
-        // Create a connection to a SQL Lite Instance
+        // Create a connection to a biocode-fims-commons.jar SQL Lite Instance
         this.connection = new Connection(processController.getValidation().getSqliteFile());
         getTriples();
         return true;

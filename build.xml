@@ -33,6 +33,7 @@
 
     <jar jarfile="${dist.lib.dir}/dependencies-all.jar">
         <zipgroupfileset dir="${lib.dir}">
+            <exclude name="biocode-fims-commons.jar" />
             <include name="**/*.jar" />
         </zipgroupfileset>
     </jar>
