@@ -127,6 +127,9 @@ public class Triplifier {
      * Run the triplifier using this class
      */
     public boolean run() {
+        if (Boolean.valueOf(SettingsManager.getInstance().retrieveValue("deepRoots"))) {
+            runDeepRoots();
+        }
 
         String status = "Converting Data Format ...";
         processController.appendStatus(status + "<br>");
