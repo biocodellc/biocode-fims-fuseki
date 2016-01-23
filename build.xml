@@ -23,7 +23,8 @@
 <!-- Need classpath to run this -->
 <target name="compile" depends="init" description="compile the source ">
     <javac includeantruntime="false" srcdir="${src.dir}"
-           destdir="${build.dir}" classpathref="classpath" />
+           destdir="${build.dir}" classpathref="classpath"
+           source="1.7" target="1.7" />
 </target>
 
 <!-- Group all dependencies into a big dependency-all.jar -->
