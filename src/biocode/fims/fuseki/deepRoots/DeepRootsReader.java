@@ -35,7 +35,7 @@ public class DeepRootsReader {
         rootData.setShortName((String) metadata.get("expeditionCode"));
 
         // TODO pass in the deepRoots data from the frontend class
-        ArrayList<JSONObject> datasets = expeditionMinter.getDatasets((Integer) metadata.get("expeditionId"));
+        ArrayList<JSONObject> datasets = expeditionMinter.getDatasets(Integer.valueOf(metadata.get("expeditionId").toString()));
         expeditionMinter.close();
         // Create the Hashmap to store in the deepLinks.rootData class
         HashMap<String, String> data = new HashMap<String, String>();
