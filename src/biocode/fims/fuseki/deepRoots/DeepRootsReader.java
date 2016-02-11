@@ -60,11 +60,11 @@ public class DeepRootsReader {
     public static void main(String[] args) {
         DeepRootsReader reader = new DeepRootsReader();
         // Some path name to the file
-        String filePath = "file:///Users/jdeck/IdeaExpeditions/bcid/src/deepRoots/encodeURIcomponent.json";
+        String filePath = "file:////Users/jdeck/IdeaProjects/bcid/src/deepRoots/test.json";
         // Creating the object
-//        DeepRoots rootData = reader.createRootData(null, 1, filePath);
+       DeepRoots rootData = reader.createRootData(5,"TEST214");
         // Output for testing
-//        System.out.println(rootData.toString());
+        System.out.println(rootData.toString());
     }
 
 }
