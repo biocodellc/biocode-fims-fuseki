@@ -126,9 +126,14 @@ public class Triplifier {
     /**
      * Run the triplifier using this class
      */
-    public boolean run() {
+    public boolean run(File sqlLiteFile) {
         if (Boolean.valueOf(SettingsManager.getInstance().retrieveValue("deepRoots"))) {
-            runDeepRoots();
+            try {
+                runDeepRoots();
+            } catch (Exception e) {
+                System.out.println("Generating stack trace from biocode-fims-fuseki;Triplifier.run function");
+                e.printStackTrace();
+            }
         }
 
         String status = "Converting Data Format ...";
@@ -136,7 +141,8 @@ public class Triplifier {
         FimsPrinter.out.println(status);
 
         // Create a connection to a biocode-fims-commons.jar SQL Lite Instance
-        this.connection = new Connection(processController.getValidation().getSqliteFile());
+        System.out.println("READING " + processController.getValidation().getSqliteFile());
+        this.connection = new Connection(sqlLiteFile);
         getTriples();
         return true;
     }
@@ -144,7 +150,7 @@ public class Triplifier {
     /**
      * create a DeepRoots object based on results returned from the biocode-fims DeepRoots service
      */
-    public void runDeepRoots() {
+    public void runDeepRoots() throws Exception {
         dRoots = new DeepRootsReader().createRootData(processController.getProjectId(),
                 processController.getExpeditionCode());
     }
