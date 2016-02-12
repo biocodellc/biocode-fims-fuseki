@@ -141,7 +141,7 @@ public class Triplifier {
         FimsPrinter.out.println(status);
 
         // Create a connection to a biocode-fims-commons.jar SQL Lite Instance
-        System.out.println("READING " + processController.getValidation().getSqliteFile());
+        //System.out.println("READING " + sqlLiteFile);
         this.connection = new Connection(sqlLiteFile);
         getTriples();
         return true;
