@@ -114,7 +114,7 @@ public class Triplifier {
         try {
             PrintWriter pw = new PrintWriter(mapFile);
             TabularDataReader tdr = processController.getValidation().getTabularDataReader();
-            Mapping mapping = processController.getValidation().getMapping();
+            Mapping mapping = processController.getMapping();
             new D2RQPrinter(mapping, pw, connection, dRoots, processController).printD2RQ(tdr.getColNames());
             pw.close();
         } catch (FileNotFoundException e) {
