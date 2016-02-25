@@ -582,8 +582,8 @@ public class QueryWriter {
             Iterator cellsIt = cells.iterator();
 
             //Variables pertaining to row level only
-            String year = "", month = "", day = "", taxon = "", identBy = "";
-            String identyear = "", identmonth = "", identday = "";
+            String year = "", month = "", day = "", taxon = "", identBy = "", date ="";
+            String identyear = "", identmonth = "", identday = "", identdate = "";
             String Locality = "", Country = "", State_Province = "", County = "", Elevation = "", Elevation_Units = "", Latitude = "", Longitude = "", Coordinate_Source = "";
             StringBuilder common = new StringBuilder();
             StringBuilder naturalhistory = new StringBuilder();
@@ -631,6 +631,10 @@ public class QueryWriter {
                         month = value;
                     } else if (fieldName.equals("Coll_Day")) {
                         day = value;
+                    } else if (fieldName.equals("Coll_Date")) {
+                        date = value;
+                    } else if (fieldName.equals("Det_Date_Display")) {
+                        identdate = value;
                     } else if (fieldName.equals("Plant_Description")) {
                         common.append("\t<briefDescriptions>\n" +
                                 "\t\t" + writeXMLValue("briefDescription", value) + "\n" +
@@ -679,6 +683,19 @@ public class QueryWriter {
                     fields++;
                 }
 
+                //Set dates to their parts if they are provided
+                if (!date.equals("")) {
+                    String[] parts = date.split("-");
+                    year = parts[0];
+                    month = parts[1];
+                    day = parts[2];
+                }
+                if (!identdate.equals("")) {
+                    String[] parts = identdate.split("-");
+                    identyear = parts[0];
+                    identmonth = parts[1];
+                    identday = parts[2];
+                }
                 // Field Date Group
                 common.append("\t<fieldCollectionDateGroup>\n");
                 common.append("\t\t<dateDisplayDate>" + year + "-" + month + "-" + day + "</dateDisplayDate>\n");
