@@ -71,6 +71,19 @@ public class Uploader {
         this.file = file;
     }
 
+    public Uploader(String fusekiService, File file, String graphID) {
+        this.graphID = graphID;
+
+        this.service = fusekiService;
+        try {
+            this.endpoint = service + "?graph=" + URLEncoder.encode(graphID, encoding);
+            //System.out.println(endpoint);
+        } catch (UnsupportedEncodingException e) {
+            logger.warn("UnsupportedEncodingException", e);
+        }
+        this.file = file;
+    }
+
     /**
      * Execute the data update.  This method is NOT transaction safe and if it is used, reccomend backing up loaded data
      * in case of data corruption
