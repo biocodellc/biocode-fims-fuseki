@@ -34,7 +34,7 @@ public class FusekiFastaManager extends FastaManager {
     }
 
     @Override
-    public void upload(String graphId) {
+    public void upload(String graphId, String outputFolder, String filenamePrefix) {
         if (fastaData.isEmpty()) {
             throw new ServerErrorException("No fasta data was found.");
         }
@@ -51,7 +51,7 @@ public class FusekiFastaManager extends FastaManager {
         }
 
         // save fasta data as a triple file
-        File tripleFile = PathManager.createUniqueFile("testTriple.n3", "/Users/rjewing/IdeaProjects/biocode-fims-fuseki/test");
+        File tripleFile = PathManager.createUniqueFile(filenamePrefix, outputFolder);
 
         try ( PrintWriter out = new PrintWriter(tripleFile) ){
 
