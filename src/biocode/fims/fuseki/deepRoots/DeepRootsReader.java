@@ -1,6 +1,7 @@
 package biocode.fims.fuseki.deepRoots;
 
 import biocode.fims.bcid.ExpeditionMinter;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.text.DateFormat;
@@ -24,30 +25,23 @@ public class DeepRootsReader {
         // Create the deepLinks.rootData Class
         DeepRoots rootData = new DeepRoots(projectId, expeditionCode);
         // Get deepLinks json object
-        ExpeditionMinter expeditionMinter = new ExpeditionMinter();
-        JSONObject metadata;
-        metadata = expeditionMinter.getMetadata(projectId, expeditionCode);
-
-        // Get todays's date
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        Date date = new Date();
-        rootData.setDescription((String) metadata.get("expeditionTitle"));
-        rootData.setDate(dateFormat.format(date));
-        rootData.setShortName((String) metadata.get("expeditionCode"));
-
         // TODO pass in the deepRoots data from the frontend class
-        ArrayList<JSONObject> datasets = null;
-        datasets = expeditionMinter.getDatasets(Integer.valueOf(metadata.get("expeditionId").toString()));
-
+        ExpeditionMinter expeditionMinter = new ExpeditionMinter();
+        JSONObject deepRoots = expeditionMinter.getDeepRoots(expeditionCode, projectId);
         expeditionMinter.close();
+
+        rootData.setDescription(((JSONObject) deepRoots.get("metadata")).get("expeditionTitle").toString());
+        rootData.setDate(((JSONObject) deepRoots.get("metadata")).get("date").toString());
+        rootData.setShortName(((JSONObject) deepRoots.get("metadata")).get("expeditionCode").toString());
+
         // Create the Hashmap to store in the deepLinks.rootData class
         HashMap<String, String> data = new HashMap<String, String>();
         // Loop the data elements
-        for (Object d : datasets) {
+        for (Object d : ((JSONArray) deepRoots.get("data"))) {
             JSONObject dataObject = (JSONObject) d;
-            String alias = (String) dataObject.get("title");
+            String title = (String) dataObject.get("title");
             String identifier = (String) dataObject.get("identifier");
-            data.put(alias, identifier);
+            data.put(title, identifier);
         }
         rootData.setData(data);
         // Assign the actual data to the deepLinks.rootData element
