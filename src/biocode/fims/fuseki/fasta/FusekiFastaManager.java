@@ -44,7 +44,6 @@ public class FusekiFastaManager extends FastaManager {
             // get the bcidRoot so we can parse the identifier from the fuseki db
             Resolver r = new Resolver(processController.getExpeditionCode(), processController.getProjectId(), "Resource");
             bcidRoot = r.getIdentifier() + ":";
-            r.close();
         } else {
             // if deepRoots = false, the identifier is urn:x-biscicol:Resource:{identifier}
             bcidRoot = "urn:x-biscicol:Resource:";
@@ -124,7 +123,6 @@ public class FusekiFastaManager extends FastaManager {
                     // get the bcidRoot so we can parse the identifier from the fuseki db
                     Resolver r = new Resolver(processController.getExpeditionCode(), processController.getProjectId(), "Resource");
                     String bcidRoot = r.getIdentifier();
-                    r.close();
 
                     subStringStart = bcidRoot.length();
                 } else {

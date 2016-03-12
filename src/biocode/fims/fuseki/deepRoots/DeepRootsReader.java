@@ -28,7 +28,6 @@ public class DeepRootsReader {
         // TODO pass in the deepRoots data from the frontend class
         ExpeditionMinter expeditionMinter = new ExpeditionMinter();
         JSONObject deepRoots = expeditionMinter.getDeepRoots(expeditionCode, projectId);
-        expeditionMinter.close();
 
         rootData.setDescription(((JSONObject) deepRoots.get("metadata")).get("expeditionTitle").toString());
         rootData.setDate(((JSONObject) deepRoots.get("metadata")).get("date").toString());
