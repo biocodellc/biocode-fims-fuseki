@@ -2,7 +2,7 @@
 <project name="biocode-fims-fuseki" default="all">
   
   
-  <property file="build.xml.properties"/>
+  <property file="build.properties"/>
   <dirname property="module.biocode-fims-fuseki.basedir" file="${ant.file}"/>
   <property name="project.output.dir" value="${module.biocode-fims-fuseki.basedir}/out/production/consolidated"/>
   <!-- Uncomment the following property if no tests compilation is needed -->
