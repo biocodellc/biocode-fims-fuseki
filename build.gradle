@@ -1,0 +1,19 @@
+apply plugin: "java"
+
+targetCompatibility = 1.7
+sourceCompatibility = 1.7
+
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.apache.jena:jena-core:2.7.1'
+    compile 'org.apache.jena:jena-arq:2.9.1'
+    compile 'org.apache.jena:jena-tdb:0.9.1'
+    compile fileTree(dir: 'lib', include: ['*.jar'])
+    compile project(":biocode-fims-commons")
+
+    testCompile "junit:junit-dep:4.10"
+}

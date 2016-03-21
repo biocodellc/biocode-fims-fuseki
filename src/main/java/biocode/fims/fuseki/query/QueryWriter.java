@@ -676,7 +676,7 @@ public class QueryWriter {
                     } else if (fieldName.equals("Coordinate_Source")) {
                         Coordinate_Source = value;
                     } else {
-                        // All the rest of the values
+                        // All the biocode.fims.rest of the values
                         //naturalhistory.append("\t" + writeXMLValue(fieldName, value) + "\n");
                     }
 

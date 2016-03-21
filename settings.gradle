@@ -1,0 +1,5 @@
+rootProject.name = 'biocode-Fims-fuseki'
+
+include ":biocode-fims-commons"
+
+project(":biocode-fims-commons").projectDir = file(biocodeFimsCommonsDir)
