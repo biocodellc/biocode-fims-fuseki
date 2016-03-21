@@ -48,7 +48,7 @@ public class FimsQueryBuilder {
         this.graphArray = graphArray;
 
         validation = new Validation();
-        validation.addValidationRules(new Digester(), process.configFile);
+        validation.addValidationRules(new Digester(), process.configFile, new Mapping());
 
         // Build the "query" location for SPARQL queries
         sparqlServer = mapping.getMetadata().getQueryTarget().toString() + "/query";

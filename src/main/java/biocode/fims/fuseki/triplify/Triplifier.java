@@ -257,7 +257,7 @@ public class Triplifier {
         mapping.addMappingRules(new Digester(), config);
 
         Validation validation = new Validation();
-        validation.addValidationRules(new Digester(), config);
+        validation.addValidationRules(new Digester(), config, mapping);
 
         processController.setMapping(mapping);
         processController.setValidation(validation);
