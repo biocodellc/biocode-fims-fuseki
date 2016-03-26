@@ -1,4 +1,4 @@
-rootProject.name = 'biocode-Fims-fuseki'
+rootProject.name = 'biocode-fims-fuseki'
 
 include ":biocode-fims-commons"
 
