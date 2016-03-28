@@ -718,18 +718,18 @@ public class QueryWriter {
 
                 naturalhistory.append("\t<localityGroupList>\n" +
                         "\t\t<localityGroup>\n" +
-                        "\t\t\t<fieldLocVerbatim>" + Locality + "</fieldLocVerbatim>\n" +
-                        "\t\t\t<fieldLocCountry>" + Country + "</fieldLocCountry>\n" +
-                        "\t\t\t<fieldLocState>" + State_Province + "</fieldLocState>\n" +
-                        "\t\t\t<fieldLocCounty>" + County + "</fieldLocCounty>\n" +
-                        "\t\t\t<minElevation>" + Elevation + "</minElevation>\n" +
-                        "\t\t\t<elevationUnit>" + Elevation_Units + "</elevationUnit>\n" +
-                        "\t\t\t<decimalLatitude>" + Latitude + "</decimalLatitude>\n" +
-                        "\t\t\t<decimalLongitude>" + Longitude + "</decimalLongitude>\n" +
-                        "\t\t\t<vLatitude>" + Latitude + "</vLatitude>\n" +
-                        "\t\t\t<vLongitude>" + Longitude + "</vLongitude>\n" +
-                        "\t\t\t<geoRefSource>" + Coordinate_Source + "</geoRefSource>\n" +
-                        "\t\t\t<localitySource>" + Coordinate_Source + "</localitySource>\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocVerbatim",Locality) +"\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocCountry",Country) +"\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocState",State_Province) +"\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocCounty",County) +"\n" +
+                        "\t\t\t" + writeXMLValue ("minElevation",Elevation) +"\n" +
+                        "\t\t\t" + writeXMLValue ("elevationUnit",Elevation_Units) +"\n" +
+                        "\t\t\t" + writeXMLValue ("decimalLatitude",Latitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("decimalLongitude",Longitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("vLatitude",Latitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("vLongitude",Longitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("geoRefSource",Coordinate_Source) +"\n" +
+                        "\t\t\t" + writeXMLValue ("localitySource",Coordinate_Source) +"\n" +
                         "\t\t</localityGroup>\n" +
                         "\t</localityGroupList>\n");
 
