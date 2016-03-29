@@ -1,9 +1,11 @@
 apply plugin: "java"
 apply plugin: "idea"
+apply plugin: "application"
 
 targetCompatibility = 1.7
 sourceCompatibility = 1.7
 
+mainClassName = "biocode.fims.fuseki.triplify.Triplifier"
 
 repositories {
     mavenCentral()
