@@ -237,7 +237,6 @@ public class QueryWriter {
         }
 
 
-
     }
 
     /**
@@ -582,7 +581,7 @@ public class QueryWriter {
             Iterator cellsIt = cells.iterator();
 
             //Variables pertaining to row level only
-            String year = "", month = "", day = "", taxon = "", identBy = "", date ="";
+            String year = "", month = "", day = "", taxon = "", identBy = "", date = "";
             String identyear = "", identmonth = "", identday = "", identdate = "";
             String Locality = "", Country = "", State_Province = "", County = "", Elevation = "", Elevation_Units = "", Latitude = "", Longitude = "", Coordinate_Source = "";
             StringBuilder common = new StringBuilder();
@@ -684,57 +683,53 @@ public class QueryWriter {
                 }
 
                 //Set dates to their parts if they are provided
+                // The following code will only parse dates if all of year, month, day are provided in the
+                // correct format.
                 if (!date.equals("")) {
                     String[] parts = date.split("-");
-                    year = parts[0];
-                    month = parts[1];
-                    day = parts[2];
+                    if (parts.length > 2) {
+                        year = parts[0];
+                        month = parts[1];
+                        day = parts[2];
+                    }
+
                 }
                 if (!identdate.equals("")) {
                     String[] parts = identdate.split("-");
-                    identyear = parts[0];
-                    identmonth = parts[1];
-                    identday = parts[2];
+                    if (parts.length > 2) {
+                        identyear = parts[0];
+                        identmonth = parts[1];
+                        identday = parts[2];
+                    }
                 }
-                // Field Date Group
-                common.append("\t<fieldCollectionDateGroup>\n");
-                common.append("\t\t<dateDisplayDate>" + year + "-" + month + "-" + day + "</dateDisplayDate>\n");
-                common.append("\t\t<dateEarliestSingleDay>" + day + "</dateEarliestSingleDay>\n");
-                common.append("\t\t<dateEarliestSingleMonth>" + month + "</dateEarliestSingleMonth>\n");
-                common.append("\t\t<dateEarliestSingleYear>" + year + "</dateEarliestSingleYear>\n");
-                common.append("\t\t<dateEarliestScalarValue>" + year + "-" + month + "-" + day + "T00:00:00Z</dateEarliestScalarValue>\n");
-                common.append("\t</fieldCollectionDateGroup>\n");
+
+                // fieldCollectionDateGroup
+                common.append(displayCSPACEDate("fieldCollectionDateGroup", date, year, month, day,2));
 
                 // TaxonomicIdentGroup
                 naturalhistory.append("\t<taxonomicIdentGroupList>\n" +
                         "\t\t<taxonomicIdentGroup>\n" +
                         "\t\t\t" + taxon + "\n" +
                         "\t\t\t<qualifier></qualifier>\n" +
-                        "\t\t\t" + identBy + "\n" +
-                        "\t\t\t<identDateGroup>\n" +
-                        "\t\t\t\t<dateDisplayDate>" + identyear + "-" + identmonth + "-" + identday + "</dateDisplayDate>\n" +
-                        "\t\t\t\t<dateEarliestSingleDay>" + identday + "</dateEarliestSingleDay>\n" +
-                        "\t\t\t\t<dateEarliestSingleMonth>" + identmonth + "</dateEarliestSingleMonth>\n" +
-                        "\t\t\t\t<dateEarliestSingleYear>" + identyear + "</dateEarliestSingleYear>\n" +
-                        "\t\t\t\t<dateEarliestScalarValue>" + identyear + "-" + identmonth + "-" + identday + "T00:00:00Z</dateEarliestScalarValue>\n" +
-                        "\t\t\t</identDateGroup>\n" +
-                        "\t\t</taxonomicIdentGroup>\n" +
+                        "\t\t\t" + identBy + "\n");
+                naturalhistory.append(displayCSPACEDate("identDateGroup", date, year, month, day,3));
+                naturalhistory.append("\t\t</taxonomicIdentGroup>\n" +
                         "\t</taxonomicIdentGroupList>\n");
 
                 naturalhistory.append("\t<localityGroupList>\n" +
                         "\t\t<localityGroup>\n" +
-                        "\t\t\t<fieldLocVerbatim>" + Locality + "</fieldLocVerbatim>\n" +
-                        "\t\t\t<fieldLocCountry>" + Country + "</fieldLocCountry>\n" +
-                        "\t\t\t<fieldLocState>" + State_Province + "</fieldLocState>\n" +
-                        "\t\t\t<fieldLocCounty>" + County + "</fieldLocCounty>\n" +
-                        "\t\t\t<minElevation>" + Elevation + "</minElevation>\n" +
-                        "\t\t\t<elevationUnit>" + Elevation_Units + "</elevationUnit>\n" +
-                        "\t\t\t<decimalLatitude>" + Latitude + "</decimalLatitude>\n" +
-                        "\t\t\t<decimalLongitude>" + Longitude + "</decimalLongitude>\n" +
-                        "\t\t\t<vLatitude>" + Latitude + "</vLatitude>\n" +
-                        "\t\t\t<vLongitude>" + Longitude + "</vLongitude>\n" +
-                        "\t\t\t<geoRefSource>" + Coordinate_Source + "</geoRefSource>\n" +
-                        "\t\t\t<localitySource>" + Coordinate_Source + "</localitySource>\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocVerbatim",Locality) +"\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocCountry",Country) +"\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocState",State_Province) +"\n" +
+                        "\t\t\t" + writeXMLValue ("fieldLocCounty",County) +"\n" +
+                        "\t\t\t" + writeXMLValue ("minElevation",Elevation) +"\n" +
+                        "\t\t\t" + writeXMLValue ("elevationUnit",Elevation_Units) +"\n" +
+                        "\t\t\t" + writeXMLValue ("decimalLatitude",Latitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("decimalLongitude",Longitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("vLatitude",Latitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("vLongitude",Longitude) +"\n" +
+                        "\t\t\t" + writeXMLValue ("geoRefSource",Coordinate_Source) +"\n" +
+                        "\t\t\t" + writeXMLValue ("localitySource",Coordinate_Source) +"\n" +
                         "\t\t</localityGroup>\n" +
                         "\t</localityGroupList>\n");
 
@@ -759,6 +754,38 @@ public class QueryWriter {
         sb.append("</imports>\n");
 
         return writeFile(sb.toString(), file);
+    }
+
+    private String displayCSPACEDate(String dateGroup, String date, String year, String month, String day, int tabStops) {
+        // Set the appropriate number of tabs
+        String tabs = "";
+        for (int i =0; i < tabStops; i++) {
+            tabs += "\t";
+        }
+
+        StringBuilder common = new StringBuilder();
+        // Field Date Group
+        common.append(tabs + "<" + dateGroup + ">\n");
+        if (!date.trim().equals("")) {
+            common.append(tabs + "\t<dateDisplayDate>" + date + "</dateDisplayDate>\n");
+        } else {
+            common.append(tabs + "\t<dateDisplayDate>" + year + "-" + month + "-" + day + "</dateDisplayDate>\n");
+        }
+        if (!day.trim().equals("")) {
+            common.append(tabs + "\t<dateEarliestSingleDay>" + day + "</dateEarliestSingleDay>\n");
+        }
+        if (!month.trim().equals("")) {
+            common.append(tabs + "\t<dateEarliestSingleMonth>" + month + "</dateEarliestSingleMonth>\n");
+        }
+        if (!year.trim().equals("")) {
+            common.append(tabs + "\t<dateEarliestSingleYear>" + year + "</dateEarliestSingleYear>\n");
+        }
+        if (!year.trim().equals("") && !month.trim().equals("") && !day.trim().equals("")) {
+            common.append(tabs + "\t<dateEarliestScalarValue>" + year + "-" + month + "-" + day + "T00:00:00Z</dateEarliestScalarValue>\n");
+        }
+        common.append(tabs + "</" + dateGroup + ">\n");
+
+        return common.toString();
     }
 
     /**

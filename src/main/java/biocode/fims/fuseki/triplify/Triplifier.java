@@ -11,6 +11,8 @@ import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 import org.apache.commons.cli.*;
 import org.apache.commons.digester3.Digester;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
@@ -18,6 +20,7 @@ import biocode.fims.fuseki.deepRoots.*;
 import biocode.fims.settings.*;
 
 import java.io.*;
+import java.util.Map;
 
 /**
  * Triplify source file, using code adapted from the BiSciCol Triplifier
@@ -108,6 +111,7 @@ public class Triplifier {
      * Construct the mapping file for D2RQ to read
      *
      * @param verifyFile
+     *
      * @return
      */
     private String getMapping(Boolean verifyFile) {
@@ -161,10 +165,9 @@ public class Triplifier {
     }
 
     /**
-     *
      * @param args
      */
-    public static void main(String[] args) throws Exception {
+    public static void main(java.lang.String[] args) throws Exception {
 //        SettingsManager.getInstance("biocode-fims.props");
 
         // Some classes to help us
@@ -177,17 +180,16 @@ public class Triplifier {
         String outputDirectory = "";
         String configFile = "";
         boolean runDeepRoots = false;
-        boolean stdout = false;
+        boolean stdout = true;
 
         // Define our commandline options
         Options options = new Options();
         options.addOption("h", "help", false, "print this help message and exit");
-
         options.addOption("o", "outputDirectory", true, "Output Directory");
         options.addOption("i", "inputFile", true, "Input Spreadsheet");
         options.addOption("configFile", true, "Use a local config file instead of getting from server");
 //        options.addOption("deepRoots", true, "run deepRoots while triplifying");
-        options.addOption("stdout", true, "Print the triple file contents to std out");
+        options.addOption("w", "writeFile", true, "Don't use stdout, instead print to file and return location");
 
         // Create the commands parser and parse the command line arguments.
         try {
@@ -227,14 +229,8 @@ public class Triplifier {
 //            }
 //        }
 
-        if (cl.hasOption("stdout")) {
-            try {
-                stdout = Boolean.valueOf(cl.getOptionValue("stdout"));
-            } catch (Exception e) {
-                FimsPrinter.out.println("Bad option for stdout");
-                helpf.printHelp("fims ", options, true);
-                return;
-            }
+        if (cl.hasOption("w")) {
+            stdout = true;
         }
 
         if (cl.hasOption("i")) {
@@ -245,7 +241,7 @@ public class Triplifier {
             configFile = cl.getOptionValue("configFile");
         }
 
-        if (configFile.isEmpty() || outputDirectory.isEmpty() || inputFile.isEmpty() ) {
+        if (configFile.isEmpty() || outputDirectory.isEmpty() || inputFile.isEmpty()) {
             FimsPrinter.out.println("All options are required");
             return;
         }
@@ -268,18 +264,26 @@ public class Triplifier {
 
         validation.run(tdr, "test", outputDirectory, mapping);
 
-        Triplifier t = new Triplifier("test", outputDirectory, processController);
-        t.run(validation.getSqliteFile(), runDeepRoots);
+        // add messages to process controller and print
+        validation.getMessages(processController);
 
-//        System.out.println("new Triple file created: " + t.getTripleOutputFile());
+        if (!processController.getHasErrors()) {
+            Triplifier t = new Triplifier("test", outputDirectory, processController);
+            t.run(validation.getSqliteFile(), runDeepRoots);
 
-        if (stdout) {
-            try (BufferedReader br = new BufferedReader(new FileReader(t.getTripleOutputFile()))) {
-                String line = null;
-                while ((line = br.readLine()) != null) {
-                    System.out.println(line);
+            if (stdout) {
+                try (BufferedReader br = new BufferedReader(new FileReader(t.getTripleOutputFile()))) {
+                    String line = null;
+                    while ((line = br.readLine()) != null) {
+                        System.out.println(line);
+                    }
                 }
+            } else {
+                System.out.println("new Triple file created: " + t.getTripleOutputFile());
             }
+        } else {
+            System.err.println(processController.getMessages().toString());
+            System.err.println("Unable to create triples until errors are fixed");
         }
     }
 }
