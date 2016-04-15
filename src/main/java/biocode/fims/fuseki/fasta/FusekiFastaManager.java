@@ -1,12 +1,20 @@
 package biocode.fims.fuseki.fasta;
 
+import biocode.fims.bcid.ExpeditionService;
 import biocode.fims.bcid.Resolver;
+import biocode.fims.bcid.ResourceType;
+import biocode.fims.bcid.ResourceTypes;
+import biocode.fims.entities.Bcid;
+import biocode.fims.entities.Expedition;
 import biocode.fims.fimsExceptions.ServerErrorException;
 import biocode.fims.fuseki.Uploader;
 import biocode.fims.fasta.FastaManager;
+import biocode.fims.repository.BcidRepository;
+import biocode.fims.repository.ExpeditionRepository;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.PathManager;
 import biocode.fims.settings.SettingsManager;
+import biocode.fims.utils.SpringApplicationContext;
 import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.sparql.modify.UpdateProcessRemote;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
@@ -42,8 +50,15 @@ public class FusekiFastaManager extends FastaManager {
         String bcidRoot;
         if (Boolean.valueOf(SettingsManager.getInstance().retrieveValue("deepRoots"))) {
             // get the bcidRoot so we can parse the identifier from the fuseki db
-            Resolver r = new Resolver(processController.getExpeditionCode(), processController.getProjectId(), "Resource");
-            bcidRoot = r.getIdentifier();
+            ExpeditionService expeditionService = (ExpeditionService) SpringApplicationContext.getBean("expeditionService");
+
+            Bcid bcid = expeditionService.getRootBcid(
+                    processController.getExpeditionCode(),
+                    processController.getProjectId(),
+                    "Resource"
+            );
+
+            bcidRoot = String.valueOf(bcid.getIdentifier());
         } else {
             // if deepRoots = false, the identifier is urn:x-biscicol:Resource:{identifier}
             bcidRoot = "urn:x-biscicol:Resource:";
@@ -121,9 +136,15 @@ public class FusekiFastaManager extends FastaManager {
                 int subStringStart;
                 if (Boolean.valueOf(SettingsManager.getInstance().retrieveValue("deepRoots"))) {
                     // get the bcidRoot so we can parse the identifier from the fuseki db
-                    Resolver r = new Resolver(processController.getExpeditionCode(), processController.getProjectId(), "Resource");
-                    String bcidRoot = r.getIdentifier();
+                    ExpeditionService expeditionService = (ExpeditionService) SpringApplicationContext.getBean("expeditionService");
 
+                    Bcid bcid = expeditionService.getRootBcid(
+                            processController.getExpeditionCode(),
+                            processController.getProjectId(),
+                            "Resource"
+                    );
+
+                    String bcidRoot = String.valueOf(bcid.getIdentifier());
                     subStringStart = bcidRoot.length();
                 } else {
                     // if deepRoots = false, the identifier is urn:x-biscicol:Resource:{identifier}
