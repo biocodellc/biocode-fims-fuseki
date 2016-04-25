@@ -1,16 +1,10 @@
 package biocode.fims.fuseki.fasta;
 
-import biocode.fims.bcid.ExpeditionService;
-import biocode.fims.bcid.Resolver;
-import biocode.fims.bcid.ResourceType;
-import biocode.fims.bcid.ResourceTypes;
+import biocode.fims.service.ExpeditionService;
 import biocode.fims.entities.Bcid;
-import biocode.fims.entities.Expedition;
 import biocode.fims.fimsExceptions.ServerErrorException;
 import biocode.fims.fuseki.Uploader;
 import biocode.fims.fasta.FastaManager;
-import biocode.fims.repository.BcidRepository;
-import biocode.fims.repository.ExpeditionRepository;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.PathManager;
 import biocode.fims.settings.SettingsManager;
