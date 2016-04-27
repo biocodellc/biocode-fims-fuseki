@@ -142,7 +142,7 @@ public class DeepRoots {
         BcidMinter bcidMinter = new BcidMinter(true);
 
         String identifier = bcidMinter.createEntityBcid(new Bcid(userId, entity.getConceptAlias(),
-                entity.getConceptAlias(), "", null, null, false, false));
+                entity.getConceptAlias(), "", null, null, false));
         // Associate this Bcid with this expedition
         ExpeditionMinter expedition = new ExpeditionMinter();
         expedition.attachReferenceToExpedition(expeditionCode, identifier, projectId);

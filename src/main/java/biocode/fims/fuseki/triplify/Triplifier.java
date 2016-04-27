@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
 import biocode.fims.fuseki.deepRoots.*;
 import biocode.fims.settings.*;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.*;
 import java.util.Map;
@@ -168,7 +170,7 @@ public class Triplifier {
      * @param args
      */
     public static void main(java.lang.String[] args) throws Exception {
-//        SettingsManager.getInstance("biocode-fims.props");
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("/applicationContext.xml");
 
         // Some classes to help us
         CommandLineParser clp = new GnuParser();
