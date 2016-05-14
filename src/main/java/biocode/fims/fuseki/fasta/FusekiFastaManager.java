@@ -48,7 +48,7 @@ public class FusekiFastaManager extends FastaManager {
 
             Bcid bcid = expeditionService.getRootBcid(
                     processController.getExpeditionCode(),
-                    processController.getProjectId(),
+                    processController.getProject().getProjectId(),
                     "Resource"
             );
 
@@ -134,7 +134,7 @@ public class FusekiFastaManager extends FastaManager {
 
                     Bcid bcid = expeditionService.getRootBcid(
                             processController.getExpeditionCode(),
-                            processController.getProjectId(),
+                            processController.getProject().getProjectId(),
                             "Resource"
                     );
 

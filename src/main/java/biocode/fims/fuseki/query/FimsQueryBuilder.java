@@ -32,7 +32,6 @@ import java.util.Iterator;
 public class FimsQueryBuilder {
     String graphArray[];
     Mapping mapping;
-    Process process;
     Validation validation;
     String sparqlServer;
     String outputDirectory;// = System.getProperty("user.dir") + File.separator + "tripleOutput";
@@ -40,15 +39,14 @@ public class FimsQueryBuilder {
      // ArrayList of filter conditions
     private ArrayList<FimsFilterCondition> filterArrayList = new ArrayList<FimsFilterCondition>();
 
-    public FimsQueryBuilder(Process process, String[] graphArray, String outputDirectory) {
+    public FimsQueryBuilder(Mapping mapping, File configFile, String[] graphArray, String outputDirectory) {
+        this.mapping = mapping;
         this.outputDirectory = outputDirectory;
 
-        this.process = process;
-        mapping = process.getMapping();
         this.graphArray = graphArray;
 
         validation = new Validation();
-        validation.addValidationRules(new Digester(), process.configFile, new Mapping());
+        validation.addValidationRules(new Digester(), configFile, new Mapping());
 
         // Build the "query" location for SPARQL queries
         sparqlServer = mapping.getMetadata().getQueryTarget().toString() + "/query";
@@ -200,7 +198,7 @@ public class FimsQueryBuilder {
      *
      * @return
      */
-    public String run(String format) {
+    public String run(String format, int projectId) {
 
         FimsModel fimsModel = null;
         String outputPath;
@@ -234,7 +232,7 @@ public class FimsQueryBuilder {
             }
 
             // SPECIFY PROJECT_ID HERE!!
-            TemplateProcessor t = new TemplateProcessor(process.getProjectId(), outputDirectory, false, justData);
+            TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, false, justData);
             outputPath = t.createExcelFileFromExistingSources("Samples", outputDirectory).getAbsolutePath();
         }
         else if (format.equals("html"))

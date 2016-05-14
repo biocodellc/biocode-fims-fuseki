@@ -162,7 +162,7 @@ public class Triplifier {
      * create a DeepRoots object based on results returned from the biocode-fims DeepRoots service
      */
     public void runDeepRoots() throws Exception {
-        dRoots = new DeepRootsReader().createRootData(processController.getProjectId(),
+        dRoots = new DeepRootsReader().createRootData(processController.getProject().getProjectId(),
                 processController.getExpeditionCode());
     }
 

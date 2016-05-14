@@ -124,7 +124,7 @@ public class DeepRoots {
     /**
      * Find the appropriate identifier for a concept contained in this file
      *
-     * @return returns the Bcid for this conceptAlias in this DeepRoots file
+     * @return returns the Bcid for Entity resourceType in this DeepRoots file
      */
     public String lookupPrefix(Entity entity, Integer userId) {
         Iterator it = data.entrySet().iterator();
