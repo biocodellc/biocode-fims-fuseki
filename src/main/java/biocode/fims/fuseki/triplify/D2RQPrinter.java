@@ -286,7 +286,7 @@ public class D2RQPrinter {
         // Use the DeepRoots System to lookup Key
         String bcid = null;
         if (dRoots != null) {
-            bcid = dRoots.lookupPrefix(entity, processController.getUser().getUserId());
+            bcid = dRoots.lookupPrefix(entity, processController.getUserId());
         }
 
         // Use the default namespace value if dRoots is unsuccesful...

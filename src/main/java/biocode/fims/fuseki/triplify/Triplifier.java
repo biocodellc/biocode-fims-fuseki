@@ -11,8 +11,6 @@ import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 import org.apache.commons.cli.*;
 import org.apache.commons.digester3.Digester;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
@@ -22,7 +20,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.*;
-import java.util.Map;
 
 /**
  * Triplify source file, using code adapted from the BiSciCol Triplifier
@@ -162,7 +159,7 @@ public class Triplifier {
      * create a DeepRoots object based on results returned from the biocode-fims DeepRoots service
      */
     public void runDeepRoots() throws Exception {
-        dRoots = new DeepRootsReader().createRootData(processController.getProject().getProjectId(),
+        dRoots = new DeepRootsReader().createRootData(processController.getProjectId(),
                 processController.getExpeditionCode());
     }
 
