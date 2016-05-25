@@ -14,7 +14,6 @@ import org.apache.commons.digester3.Digester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
-import biocode.fims.fuseki.deepRoots.*;
 import biocode.fims.settings.*;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -27,14 +26,10 @@ import java.io.*;
  */
 public class Triplifier {
 
-    public Connection connection;
-
     private String outputFolder;
     private Model model;
     private String tripleOutputFile;
-    private String updateOutputFile;
     private String filenamePrefix;
-    private DeepRoots dRoots = null;
     private ProcessController processController;
 
     private static Logger logger = LoggerFactory.getLogger(Triplifier.class);
@@ -45,7 +40,8 @@ public class Triplifier {
      * @param filenamePrefix
      * @param outputFolder
      */
-    public Triplifier(String filenamePrefix, String outputFolder, ProcessController processController) {
+    public Triplifier(String filenamePrefix, String outputFolder,
+                      ProcessController processController) {
         this.outputFolder = outputFolder;
         this.filenamePrefix = filenamePrefix;
         this.processController = processController;
@@ -67,26 +63,17 @@ public class Triplifier {
         return tripleOutputFile;
     }
 
-    public String getUpdateOutputFile() {
-        return updateOutputFile;
-    }
-
-
     /**
      * Return triples
      *
      * @return
      */
-    public void getTriples() {
-        //String filenamePrefix = inputFile.getName();
-        System.gc();
+    private void getTriples(String mappingFilepath) {
         String status = "\tWriting Temporary Output ...";
         processController.appendStatus(status + "<br>");
-        // Inform cmd line users
-//        FimsPrinter.out.println(status);
 
         // Write the model
-        model = new ModelD2RQ(FileUtils.toURL(getMapping(true)),
+        model = new ModelD2RQ(FileUtils.toURL(mappingFilepath),
                 FileUtils.langN3, "urn:x-biscicol:");
         model.setNsPrefix("ark", "http://ezid.cdlib.org/id/ark");
         // Write the model as simply a Turtle file
@@ -109,58 +96,28 @@ public class Triplifier {
     /**
      * Construct the mapping file for D2RQ to read
      *
-     * @param verifyFile
-     *
      * @return
      */
-    private String getMapping(Boolean verifyFile) {
-        if (verifyFile)
-            connection.verifyFile();
+    private String getMapping(Connection connection) {
+        connection.verifyFile();
 
         File mapFile = PathManager.createUniqueFile(filenamePrefix + ".mapping.n3", outputFolder);
-        try {
-            PrintWriter pw = new PrintWriter(mapFile);
-            TabularDataReader tdr = processController.getValidation().getTabularDataReader();
-            Mapping mapping = processController.getMapping();
-            new D2RQPrinter(mapping, pw, connection, dRoots, processController).printD2RQ(tdr.getColNames());
-            pw.close();
-        } catch (FileNotFoundException e) {
-            throw new FimsRuntimeException(500, e);
-        }
+        TabularDataReader tdr = processController.getValidation().getTabularDataReader();
+        Mapping mapping = processController.getMapping();
+        D2RQPrinter.printD2RQ(tdr.getColNames(), mapping, mapFile, connection);
         return outputFolder + File.separator + mapFile.getName();
     }
 
     /**
      * Run the triplifier using this class
      */
-    public boolean run(File sqlLiteFile, Boolean deepRoots) {
-//        if (Boolean.valueOf(SettingsManager.getInstance().retrieveValue("deepRoots"))) {
-        if (deepRoots) {
-            try {
-                runDeepRoots();
-            } catch (Exception e) {
-                System.out.println("Generating stack trace from biocode-fims-fuseki;Triplifier.run function");
-                e.printStackTrace();
-            }
-        }
-
+    public void run(File sqlLiteFile) {
         String status = "Converting Data Format ...";
         processController.appendStatus(status + "<br>");
-//        FimsPrinter.out.println(status);
 
-        // Create a connection to a biocode-fims-commons.jar SQL Lite Instance
-        //System.out.println("READING " + sqlLiteFile);
-        this.connection = new Connection(sqlLiteFile);
-        getTriples();
-        return true;
-    }
-
-    /**
-     * create a DeepRoots object based on results returned from the biocode-fims DeepRoots service
-     */
-    public void runDeepRoots() throws Exception {
-        dRoots = new DeepRootsReader().createRootData(processController.getProjectId(),
-                processController.getExpeditionCode());
+        Connection connection = new Connection(sqlLiteFile);
+        String mappingFilepath = getMapping(connection);
+        getTriples(mappingFilepath);
     }
 
     /**
@@ -268,7 +225,7 @@ public class Triplifier {
 
         if (!processController.getHasErrors()) {
             Triplifier t = new Triplifier("test", outputDirectory, processController);
-            t.run(validation.getSqliteFile(), runDeepRoots);
+            t.run(validation.getSqliteFile());
 
             if (stdout) {
                 try (BufferedReader br = new BufferedReader(new FileReader(t.getTripleOutputFile()))) {

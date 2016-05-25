@@ -1,14 +1,15 @@
 package biocode.fims.fuseki.triplify;
 
-import biocode.fims.fuseki.deepRoots.DeepRoots;
+import biocode.fims.fimsExceptions.ServerErrorException;
 import biocode.fims.digester.Attribute;
 import biocode.fims.digester.Entity;
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Relation;
-import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
 import biocode.fims.settings.DBsystem;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -19,39 +20,29 @@ import java.util.List;
  * a Mapping's connection, entites, and relations.
  */
 public class D2RQPrinter {
-    private PrintWriter pw;
-    private Connection connection;
-    private Mapping mapping;
-    private DeepRoots dRoots = null;
-    private List<String> colNames;
-    private ProcessController processController;
-
-    public D2RQPrinter(Mapping mapping, PrintWriter pw, Connection connection, DeepRoots dRoots, ProcessController processController) {
-        this.mapping = mapping;
-        this.pw = pw;
-        this.connection = connection;
-        this.dRoots = dRoots;
-        this.processController = processController;
-    }
 
     /**
      * Generate D2RQ Mapping Language representation of this Mapping's connection, entities and relations.
      */
-    public void printD2RQ(List<String> colNames) {
-        this.colNames = colNames;
-        printPrefixes();
-        printConnectionD2RQ();
-        for (Entity entity : mapping.getEntities())
-            printEntityD2RQ(entity);
-        for (Relation relation : mapping.getRelations())
-            printRelationD2RQ(relation);
+    public static void printD2RQ(List<String> colNames, Mapping mapping, File d2rqMappingFile, Connection connection) {
+        try (PrintWriter pw = new PrintWriter(d2rqMappingFile)) {
+            printPrefixes(pw);
+            printConnectionD2RQ(pw, connection);
+            for (Entity entity : mapping.getEntities())
+                printEntityD2RQ(pw, entity, colNames);
+            for (Relation relation : mapping.getRelations()) {
+                printRelationD2RQ(pw, relation, mapping);
+            }
+        } catch (FileNotFoundException e) {
+            throw new ServerErrorException(e);
+        }
     }
 
     /**
      * Generate D2RQ Mapping Language representation of this Relation.
      *
      */
-    public void printRelationD2RQ(Relation relation) {
+    private static void printRelationD2RQ(PrintWriter pw, Relation relation, Mapping mapping) {
 
         Entity subjEntity = mapping.findEntity(relation.getSubject());
         Entity objEntity = mapping.findEntity(relation.getObject());
@@ -65,7 +56,7 @@ public class D2RQPrinter {
         pw.println("map:" + subjClassMap + "_" + objClassMap + "_rel" + " a d2rq:PropertyBridge;");
         pw.println("\td2rq:belongsToClassMap " + "map:" + subjClassMap + ";");
         pw.println("\td2rq:property <" + relation.getPredicate() + ">;");
-        pw.println(getPersistentIdentifier(objEntity));
+        pw.println(getPersistentIdentifierMapping(objEntity));
         pw.println("\td2rq:condition \"" + objEntity.getWorksheetUniqueKey() + " <> ''\";");
         pw.println("\t.");
     }
@@ -75,17 +66,17 @@ public class D2RQPrinter {
      *
      * @return D2RQ Mapping ClassMap name.
      */
-    private String getClassMap(Entity entity) {
+    private static String getClassMap(Entity entity) {
         return entity.getWorksheet() + "_" + entity.getWorksheetUniqueKey() + "_" + entity.getConceptAlias();
     }
 
     /**
      * Generate D2RQ Mapping Language representation of this Entity with Attributes.
      */
-    private void printEntityD2RQ(Entity entity) {
+    private static void printEntityD2RQ(PrintWriter pw, Entity entity, List<String> colNames) {
         pw.println("map:" + getClassMap(entity) + " a d2rq:ClassMap;");
         pw.println("\td2rq:dataStorage " + "map:database;");
-        pw.println(getPersistentIdentifier(entity));
+        pw.println(getPersistentIdentifierMapping(entity));
         pw.println("\td2rq:class <" + entity.getConceptURI() + ">;");
         // ensures non-null values ... don't apply if this is a hash
         if (!entity.getColumn().contains("hash"))
@@ -107,7 +98,7 @@ public class D2RQPrinter {
         // Loop through attributes associated with this Entity
         if (entity.getAttributes().size() > 0) {
             for (Attribute attribute : entity.getAttributes())
-                printAttributeD2RQ(attribute, entity, normalizedColNames);
+                printAttributeD2RQ(pw, attribute, entity, normalizedColNames);
         }
     }
 
@@ -117,7 +108,7 @@ public class D2RQPrinter {
      * @param parent
      * @param colNames
      */
-    public void printAttributeD2RQ(Attribute attribute, Entity parent, List<String> colNames) {
+    private static void printAttributeD2RQ(PrintWriter pw, Attribute attribute, Entity parent, List<String> colNames) {
 
         String classMap = getClassMap(parent);
         String table = parent.getWorksheet();
@@ -240,7 +231,7 @@ public class D2RQPrinter {
     /**
      * Generate D2RQ Mapping Language representation of this Connection.
      */
-    public void printConnectionD2RQ() {
+    private static void printConnectionD2RQ(PrintWriter pw, Connection connection) {
         pw.println("map:database a d2rq:Database;");
         pw.println("\td2rq:jdbcDriver \"" + connection.system.driver + "\";");
         pw.println("\td2rq:jdbcDSN \"" + connection.getJdbcUrl() + "\";");
@@ -255,7 +246,7 @@ public class D2RQPrinter {
     /**
      * Generate all possible RDF prefixes.
      */
-    private void printPrefixes() {
+    private static void printPrefixes(PrintWriter pw) {
         // TODO: Allow configuration files to specify namespace prefixes!
         pw.println("@prefix map: <" + "" + "> .");
         pw.println("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .");
@@ -279,22 +270,14 @@ public class D2RQPrinter {
      * @param entity
      * @return
      */
-    private String getPersistentIdentifier(Entity entity) {
+    private static String getPersistentIdentifierMapping(Entity entity) {
+        String identifier = String.valueOf(entity.getIdentifier());
 
-        String columnName = "@@" + entity.getColumn() + "@@";
-
-        // Use the DeepRoots System to lookup Key
-        String bcid = null;
-        if (dRoots != null) {
-            bcid = dRoots.lookupPrefix(entity, processController.getUserId());
+        if (identifier == null) {
+            identifier = "urn:x-biscicol:" + entity.getConceptAlias() + ":";
         }
 
-        // Use the default namespace value if dRoots is unsuccesful...
-        if (bcid == null) {
-            bcid = "urn:x-biscicol:" + entity.getConceptAlias() + ":";
-        }
+        return "\td2rq:uriPattern \"" + identifier + "@@" + entity.getColumn() + "@@\";";
 
-        //System.out.println("\td2rq:uriPattern \"" + Bcid + columnName + "\";");
-        return "\td2rq:uriPattern \"" + bcid + columnName + "\";";
     }
 }
