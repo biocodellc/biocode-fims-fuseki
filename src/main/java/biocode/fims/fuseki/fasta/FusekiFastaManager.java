@@ -1,5 +1,8 @@
 package biocode.fims.fuseki.fasta;
 
+import biocode.fims.digester.Entity;
+import biocode.fims.digester.Mapping;
+import biocode.fims.fasta.FastaSequence;
 import biocode.fims.service.ExpeditionService;
 import biocode.fims.entities.Bcid;
 import biocode.fims.fimsExceptions.ServerErrorException;
@@ -7,8 +10,6 @@ import biocode.fims.fuseki.Uploader;
 import biocode.fims.fasta.FastaManager;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.PathManager;
-import biocode.fims.settings.SettingsManager;
-import biocode.fims.utils.SpringApplicationContext;
 import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.sparql.modify.UpdateProcessRemote;
 import com.hp.hpl.jena.update.UpdateExecutionFactory;
@@ -23,6 +24,7 @@ import java.util.*;
  */
 public class FusekiFastaManager extends FastaManager {
     private String fusekiService;
+    private ExpeditionService expeditionService;
 
     /**
      * Constructo for woring with fastaFiles
@@ -30,32 +32,17 @@ public class FusekiFastaManager extends FastaManager {
      * @param processController
      * @param fastaFilename
      */
-    public FusekiFastaManager(String fusekiService, ProcessController processController, String fastaFilename) {
+    public FusekiFastaManager(String fusekiService, ProcessController processController, String fastaFilename,
+                              ExpeditionService expeditionService) {
         super(processController, fastaFilename);
         this.fusekiService = fusekiService;
+        this.expeditionService = expeditionService;
     }
 
     @Override
     public void upload(String graphId, String outputFolder, String filenamePrefix) {
-        if (fastaData.isEmpty()) {
+        if (fastaSequences.isEmpty()) {
             throw new ServerErrorException("No fasta data was found.");
-        }
-
-        String bcidRoot;
-        if (Boolean.valueOf(SettingsManager.getInstance().retrieveValue("deepRoots"))) {
-            // get the bcidRoot so we can parse the identifier from the fuseki db
-            ExpeditionService expeditionService = (ExpeditionService) SpringApplicationContext.getBean("expeditionService");
-
-            Bcid bcid = expeditionService.getRootBcid(
-                    processController.getExpeditionCode(),
-                    processController.getProjectId(),
-                    "Resource"
-            );
-
-            bcidRoot = String.valueOf(bcid.getIdentifier());
-        } else {
-            // if deepRoots = false, the identifier is urn:x-biscicol:Resource:{identifier}
-            bcidRoot = "urn:x-biscicol:Resource:";
         }
 
         // save fasta data as a triple file
@@ -63,11 +50,11 @@ public class FusekiFastaManager extends FastaManager {
 
         try ( PrintWriter out = new PrintWriter(tripleFile) ){
 
-            for (Map.Entry<String, String> entry : fastaData.entrySet()) {
+            for (FastaSequence sequence: fastaSequences) {
                 out.write("<");
-                out.write(bcidRoot + entry.getKey());
-                out.write("> <urn:sequence> \"");
-                out.write(entry.getValue());
+                out.write(getEntityRootIdentifier() + sequence.getLocalIdentifier());
+                out.write("> <" + SEQUENCE_URI + "> \"");
+                out.write(sequence.getSequence());
                 out.write("\" .\n");
             }
         } catch (FileNotFoundException e) {
@@ -90,9 +77,10 @@ public class FusekiFastaManager extends FastaManager {
      */
     @Override
     public void copySequences(String previousGraph, String newGraph) {
-        String insert = "INSERT { GRAPH <" + newGraph + "> { ?s <urn:sequence> ?o }} WHERE " +
-                "{ GRAPH <" + newGraph + "> { ?s a <http://www.w3.org/2000/01/rdf-schema#Resource> } . " +
-                "GRAPH <" + previousGraph + "> { ?s <urn:sequence> ?o }}";
+        Entity rootEntity = getEntityRoot();
+        String insert = "INSERT { GRAPH <" + newGraph + "> { ?s <" + SEQUENCE_URI + "> ?o }} WHERE " +
+                "{ GRAPH <" + newGraph + "> { ?s a <" + rootEntity.getConceptURI() + "> } . " +
+                "GRAPH <" + previousGraph + "> { ?s <" + SEQUENCE_URI + "> ?o }}";
 
         UpdateRequest update = UpdateFactory.create(insert);
 
@@ -111,13 +99,14 @@ public class FusekiFastaManager extends FastaManager {
     public ArrayList<String> fetchIds() {
         ArrayList<String> datasetIds = new ArrayList<>();
         String graph = fetchGraph();
+        Entity rootEntity = getEntityRoot();
 
         if (graph != null) {
             // query fuseki graph
             String sparql = "SELECT ?identifier " +
                     "FROM <" + graph + "> " +
                     "WHERE { " +
-                    "?identifier a <http://www.w3.org/2000/01/rdf-schema#Resource> " +
+                    "?identifier a <" + rootEntity.getConceptURI() + "> " +
                     "}";
             QueryExecution qexec = QueryExecutionFactory.sparqlService(fusekiService + "/query", sparql);
             com.hp.hpl.jena.query.ResultSet results = qexec.execSelect();
@@ -127,28 +116,36 @@ public class FusekiFastaManager extends FastaManager {
                 QuerySolution soln = results.next();
                 String identifier = soln.getResource("identifier").getURI();
 
-                int subStringStart;
-                if (Boolean.valueOf(SettingsManager.getInstance().retrieveValue("deepRoots"))) {
-                    // get the bcidRoot so we can parse the identifier from the fuseki db
-                    ExpeditionService expeditionService = (ExpeditionService) SpringApplicationContext.getBean("expeditionService");
-
-                    Bcid bcid = expeditionService.getRootBcid(
-                            processController.getExpeditionCode(),
-                            processController.getProjectId(),
-                            "Resource"
-                    );
-
-                    String bcidRoot = String.valueOf(bcid.getIdentifier());
-                    subStringStart = bcidRoot.length();
-                } else {
-                    // if deepRoots = false, the identifier is urn:x-biscicol:Resource:{identifier}
-                    subStringStart = "urn:x-biscicol:Resource:".length();
-                }
+                int subStringStart = getEntityRootIdentifier().length();
 
                 datasetIds.add(identifier.substring(subStringStart));
             }
 
         }
         return datasetIds;
+    }
+
+    private String getEntityRootIdentifier() {
+        Entity rootEntity = getEntityRoot();
+
+        // get the bcidRoot so we can parse the identifier from the fuseki db
+        Bcid bcid = expeditionService.getEntityBcid(
+                processController.getExpeditionCode(),
+                processController.getProjectId(),
+                rootEntity.getConceptAlias()
+        );
+
+        return String.valueOf(bcid.getIdentifier());
+    }
+
+    private Entity getEntityRoot() {
+        Mapping mapping = processController.getMapping();
+        ArrayList<Entity> entitiesWithAttribute = mapping.getEntititesWithAttributeUri(SEQUENCE_URI);
+        if (entitiesWithAttribute.size() == 0) {
+            throw new ServerErrorException("Server Error", "No entity was found containing a urn:sequence attribute");
+        }
+
+        // assuming that there is only 1 entity with a sequence attribute
+        return entitiesWithAttribute.get(0);
     }
 }
