@@ -11,11 +11,42 @@ repositories {
     mavenCentral()
 }
 
+//noinspection GroovyAssignabilityCheck
+configurations {
+    server
+}
+
+idea {
+    module {
+        scopes.PROVIDED.plus += [configurations.server]
+    }
+}
+
+//noinspection GroovyAssignabilityCheck
+sourceSets {
+    main {
+        compileClasspath += [configurations.server]
+    }
+    test {
+        compileClasspath += [configurations.server]
+        runtimeClasspath += [configurations.server]
+    }
+}
+
 dependencies {
-    compile 'org.apache.jena:jena-core:2.7.1'
-    compile 'org.apache.jena:jena-arq:2.9.1'
-    compile 'org.apache.jena:jena-tdb:0.9.1'
-    compile fileTree(dir: 'lib', include: ['*.jar'])
+    server 'org.apache.jena:jena-core:2.7.1'
+    server 'org.apache.jena:jena-arq:2.9.1'
+    server 'org.apache.jena:jena-tdb:0.9.1'
+
+    server 'org.apache.commons:commons-digester3:3.2'
+    server 'commons-cli:commons-cli:1.2'
+    server 'commons-lang:commons-lang:2.6'
+    server 'org.apache.poi:poi:3.10.1'
+    server 'org.apache.poi:poi-ooxml:3.10.1'
+    server 'com.googlecode.json-simple:json-simple:1.1.1'
+    server group: 'org.springframework', name: 'spring-context', version: '4.2.5.RELEASE'
+
+    server fileTree(dir: 'lib', include: ['*.jar'])
     compile project(":biocode-fims-commons")
 
     testCompile "junit:junit-dep:4.10"
@@ -23,6 +54,7 @@ dependencies {
 
 libsDirName = "../dist"
 
+//noinspection GroovyAssignabilityCheck
 clean {
     delete libsDir
 }
