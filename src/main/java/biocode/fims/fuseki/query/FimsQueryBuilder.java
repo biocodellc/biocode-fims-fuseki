@@ -2,9 +2,9 @@ package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Validation;
+import biocode.fims.query.QueryWriter;
 import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.rdf.model.*;
-import biocode.fims.run.Process;
 import org.apache.commons.digester3.Digester;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import biocode.fims.run.TemplateProcessor;

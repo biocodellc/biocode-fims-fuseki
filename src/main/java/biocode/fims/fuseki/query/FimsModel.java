@@ -2,6 +2,7 @@ package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Attribute;
 import biocode.fims.digester.Mapping;
+import biocode.fims.query.QueryWriter;
 import com.hp.hpl.jena.rdf.model.*;
 import org.apache.poi.ss.usermodel.Row;
 
