@@ -255,6 +255,6 @@ public class FimsModel {
 
 
     public String writeTAB(File file) {
-        return queryWriter.writeTAB(file);
+        return queryWriter.writeTAB(file, true);
     }
 }
