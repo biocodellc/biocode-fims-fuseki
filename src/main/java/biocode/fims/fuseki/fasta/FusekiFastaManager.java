@@ -3,6 +3,7 @@ package biocode.fims.fuseki.fasta;
 import biocode.fims.digester.Entity;
 import biocode.fims.digester.Mapping;
 import biocode.fims.fasta.FastaSequence;
+import biocode.fims.fasta.FastaUtils;
 import biocode.fims.service.ExpeditionService;
 import biocode.fims.entities.Bcid;
 import biocode.fims.fimsExceptions.ServerErrorException;
@@ -53,7 +54,7 @@ public class FusekiFastaManager extends FastaManager {
             for (FastaSequence sequence: fastaSequences) {
                 out.write("<");
                 out.write(getEntityRootIdentifier() + sequence.getLocalIdentifier());
-                out.write("> <" + SEQUENCE_URI + "> \"");
+                out.write("> <" + FastaSequence.SEQUENCE_URI + "> \"");
                 out.write(sequence.getSequence());
                 out.write("\" .\n");
             }
@@ -77,10 +78,10 @@ public class FusekiFastaManager extends FastaManager {
      */
     @Override
     public void copySequences(String previousGraph, String newGraph) {
-        Entity rootEntity = getEntityRoot();
-        String insert = "INSERT { GRAPH <" + newGraph + "> { ?s <" + SEQUENCE_URI + "> ?o }} WHERE " +
+        Entity rootEntity = FastaUtils.getEntityRoot(processController.getMapping(), FastaSequence.SEQUENCE_URI);
+        String insert = "INSERT { GRAPH <" + newGraph + "> { ?s <" + FastaSequence.SEQUENCE_URI + "> ?o }} WHERE " +
                 "{ GRAPH <" + newGraph + "> { ?s a <" + rootEntity.getConceptURI() + "> } . " +
-                "GRAPH <" + previousGraph + "> { ?s <" + SEQUENCE_URI + "> ?o }}";
+                "GRAPH <" + previousGraph + "> { ?s <" + FastaSequence.SEQUENCE_URI + "> ?o }}";
 
         UpdateRequest update = UpdateFactory.create(insert);
 
@@ -99,7 +100,7 @@ public class FusekiFastaManager extends FastaManager {
     public ArrayList<String> fetchIds() {
         ArrayList<String> datasetIds = new ArrayList<>();
         String graph = fetchGraph();
-        Entity rootEntity = getEntityRoot();
+        Entity rootEntity = FastaUtils.getEntityRoot(processController.getMapping(), FastaSequence.SEQUENCE_URI);
 
         if (graph != null) {
             // query fuseki graph
@@ -126,7 +127,7 @@ public class FusekiFastaManager extends FastaManager {
     }
 
     private String getEntityRootIdentifier() {
-        Entity rootEntity = getEntityRoot();
+        Entity rootEntity = FastaUtils.getEntityRoot(processController.getMapping(), FastaSequence.SEQUENCE_URI);
 
         // get the bcidRoot so we can parse the identifier from the fuseki db
         Bcid bcid = expeditionService.getEntityBcid(
@@ -136,16 +137,5 @@ public class FusekiFastaManager extends FastaManager {
         );
 
         return String.valueOf(bcid.getIdentifier());
-    }
-
-    private Entity getEntityRoot() {
-        Mapping mapping = processController.getMapping();
-        ArrayList<Entity> entitiesWithAttribute = mapping.getEntititesWithAttributeUri(SEQUENCE_URI);
-        if (entitiesWithAttribute.size() == 0) {
-            throw new ServerErrorException("Server Error", "No entity was found containing a urn:sequence attribute");
-        }
-
-        // assuming that there is only 1 entity with a sequence attribute
-        return entitiesWithAttribute.get(0);
     }
 }
