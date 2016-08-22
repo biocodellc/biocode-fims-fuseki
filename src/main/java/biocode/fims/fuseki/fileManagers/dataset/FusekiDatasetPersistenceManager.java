@@ -99,12 +99,8 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
                     processController.getMapping(),
                     new String[]{datasetBcids.get(0).getGraph()},
                     processController.getOutputFolder());
-            try {
-                String tmpFile = q.writeJSON();
-                samples.addAll((JSONArray) new JSONParser().parse(new FileReader(tmpFile)));
-            } catch (IOException | org.json.simple.parser.ParseException e) {
-                throw new ServerErrorException(e);
-            }
+
+            samples.addAll(q.getJSON());
         }
 
         return new Dataset(columnNames, samples);
