@@ -124,7 +124,7 @@ public class Triplifier {
      * @param args
      */
     public static void main(java.lang.String[] args) throws Exception {
-        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("/applicationContext.xml");
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("/applicationContextFuseki.xml");
 
         // Some classes to help us
         CommandLineParser clp = new GnuParser();
