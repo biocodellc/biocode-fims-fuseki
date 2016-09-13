@@ -25,9 +25,11 @@ public class Query {
         StringBuilder namedGraphSb = new StringBuilder();
 
         for (String graph: graphs) {
-            namedGraphSb.append("\tFROM NAMED <");
-            namedGraphSb.append(graph);
-            namedGraphSb.append(">\n");
+            if (graph != null) {
+                namedGraphSb.append("\tFROM NAMED <");
+                namedGraphSb.append(graph);
+                namedGraphSb.append(">\n");
+            }
         }
 
         sparql.append("SELECT * \n");
