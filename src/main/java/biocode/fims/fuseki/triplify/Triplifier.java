@@ -206,10 +206,10 @@ public class Triplifier {
         ProcessController processController = new ProcessController();
 
         Mapping mapping = new Mapping();
-        mapping.addMappingRules(new Digester(), config);
+        mapping.addMappingRules(config);
 
         Validation validation = new Validation();
-        validation.addValidationRules(new Digester(), config, mapping);
+        validation.addValidationRules(config, mapping);
 
         processController.setMapping(mapping);
         processController.setValidation(validation);
