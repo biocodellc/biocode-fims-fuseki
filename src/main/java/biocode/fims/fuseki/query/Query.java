@@ -3,6 +3,7 @@ package biocode.fims.fuseki.query;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QuerySolution;
+import org.json.simple.JSONArray;
 
 import java.util.HashMap;
 import java.util.List;

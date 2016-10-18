@@ -5,7 +5,6 @@ import biocode.fims.digester.Validation;
 import biocode.fims.query.QueryWriter;
 import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.rdf.model.*;
-import org.apache.commons.digester3.Digester;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import biocode.fims.run.TemplateProcessor;
 import biocode.fims.settings.PathManager;
@@ -32,21 +31,17 @@ import java.util.Iterator;
 public class FimsQueryBuilder {
     String graphArray[];
     Mapping mapping;
-    Validation validation;
     String sparqlServer;
     String outputDirectory;// = System.getProperty("user.dir") + File.separator + "tripleOutput";
 
      // ArrayList of filter conditions
     private ArrayList<FimsFilterCondition> filterArrayList = new ArrayList<FimsFilterCondition>();
 
-    public FimsQueryBuilder(Mapping mapping, File configFile, String[] graphArray, String outputDirectory) {
+    public FimsQueryBuilder(Mapping mapping, String[] graphArray, String outputDirectory) {
         this.mapping = mapping;
         this.outputDirectory = outputDirectory;
 
         this.graphArray = graphArray;
-
-        validation = new Validation();
-        validation.addValidationRules(configFile, new Mapping());
 
         // Build the "query" location for SPARQL queries
         sparqlServer = mapping.getMetadata().getQueryTarget().toString() + "/query";
@@ -189,19 +184,73 @@ public class FimsQueryBuilder {
         }
     }
 
+    public String queryHtml() {
+        FimsModel fimsModel = run();
+        String filepath = fimsModel.writeHTML(PathManager.createUniqueFile("output.html", outputDirectory));
+
+        fimsModel.close();
+        return filepath;
+    }
+
+    public String writeJSON() {
+        FimsModel fimsModel = run();
+        String filepath = fimsModel.writeJSON(PathManager.createUniqueFile("output.json", outputDirectory));
+
+        fimsModel.close();
+        return filepath;
+    }
+
+    public String writeKML() {
+        FimsModel fimsModel = run();
+        String filepath = fimsModel.writeKML(PathManager.createUniqueFile("output.kml", outputDirectory));
+
+        fimsModel.close();
+        return filepath;
+    }
+
+    public String writeCSPACE(Validation validation) {
+        FimsModel fimsModel = run();
+        String filepath = fimsModel.writeCSPACE(PathManager.createUniqueFile("output.cspace.xml", outputDirectory), validation);
+
+        fimsModel.close();
+        return filepath;
+    }
+
+    public String writeTAB() {
+        FimsModel fimsModel = run();
+        String filepath = fimsModel.writeTAB(PathManager.createUniqueFile("output.txt", outputDirectory));
+
+        fimsModel.close();
+        return filepath;
+    }
+
+    public String writeExcel(int projectId) {
+        FimsModel fimsModel = run();
+        String outputPath = fimsModel.writeExcel(PathManager.createUniqueFile("output.xlsx", outputDirectory));
+
+        // Here we attach the other components of the excel sheet found with
+        XSSFWorkbook justData = null;
+        try {
+            justData = new XSSFWorkbook(new FileInputStream(outputPath));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, false, justData);
+        String filepath = t.createExcelFileFromExistingSources("Samples", outputDirectory).getAbsolutePath();
+
+        fimsModel.close();
+        return filepath;
+    }
+
     /**
-     * Run the query, which builds the Model from all the information we have collected by specifying the SPARQL query
+     * builds the Model from all the information we have collected by specifying the SPARQL query
      * service endpoint and filter conditions.  It builds a "FimsModel" from which we can re-direct to the specified
      * formats.
-     *
-     * @param format
-     *
      * @return
      */
-    public String run(String format, int projectId) {
-
-        FimsModel fimsModel = null;
-        String outputPath;
+    private FimsModel run() {
+        FimsModel fimsModel;
 
 
         /* Set the flag of whether to look at only specified properties (from configuration file)
@@ -215,40 +264,7 @@ public class FimsQueryBuilder {
             fimsModel = getFIMSModel(getModel(),getOnlySpecifiedProperties);
         }
 
-        if (format.equals("model"))
-            return fimsModel.model.toString();
-        if (format == null)
-            format = "json";
-
-        if (format.equals("excel")) {
-            outputPath = fimsModel.writeExcel(PathManager.createUniqueFile("output.xlsx", outputDirectory));
-
-            // Here we attach the other components of the excel sheet found with
-            XSSFWorkbook justData = null;
-            try {
-                 justData = new XSSFWorkbook(new FileInputStream(outputPath));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            // SPECIFY PROJECT_ID HERE!!
-            TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, false, justData);
-            outputPath = t.createExcelFileFromExistingSources("Samples", outputDirectory).getAbsolutePath();
-        }
-        else if (format.equals("html"))
-            outputPath = fimsModel.writeHTML(PathManager.createUniqueFile("output.html", outputDirectory));
-        else if (format.equals("kml"))
-            outputPath = fimsModel.writeKML(PathManager.createUniqueFile("output.kml", outputDirectory));
-        else if (format.equals("cspace"))
-            outputPath = fimsModel.writeCSPACE(PathManager.createUniqueFile("output.cspace.xml", outputDirectory));
-        else if (format.equals("tab"))
-                   outputPath = fimsModel.writeTAB(PathManager.createUniqueFile("output.txt", outputDirectory));
-        else
-            outputPath = fimsModel.writeJSON(PathManager.createUniqueFile("output.json", outputDirectory));
-
-        fimsModel.close();
-
-        return outputPath;
+        return fimsModel;
     }
 
     /**
@@ -309,8 +325,7 @@ public class FimsQueryBuilder {
         // Create a queryWriter object
         QueryWriter queryWriter = new QueryWriter(
                 mapping.getAllAttributes(sheetName),
-                sheetName,
-                validation);
+                sheetName);
 
         // Construct the FIMS model
         FimsModel fimsModel = new FimsModel(

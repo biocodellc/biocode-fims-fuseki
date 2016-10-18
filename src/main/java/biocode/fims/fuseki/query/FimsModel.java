@@ -2,6 +2,7 @@ package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Attribute;
 import biocode.fims.digester.Mapping;
+import biocode.fims.digester.Validation;
 import biocode.fims.query.QueryWriter;
 import com.hp.hpl.jena.rdf.model.*;
 import org.apache.poi.ss.usermodel.Row;
@@ -245,8 +246,8 @@ public class FimsModel {
         return queryWriter.writeKML(file);
     }
 
-    public String writeCSPACE(File file) {
-        return queryWriter.writeCSPACE(file);
+    public String writeCSPACE(File file, Validation validation) {
+        return queryWriter.writeCSPACE(file, validation);
     }
 
     public void close() {

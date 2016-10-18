@@ -2,7 +2,9 @@ package biocode.fims.fuseki.triplify;
 
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Validation;
+import biocode.fims.fileManagers.dataset.Dataset;
 import biocode.fims.fimsExceptions.FimsRuntimeException;
+import biocode.fims.reader.DatasetTabularDataConverter;
 import biocode.fims.reader.ReaderManager;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
@@ -10,7 +12,7 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 import org.apache.commons.cli.*;
-import org.apache.commons.digester3.Digester;
+import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
@@ -19,6 +21,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Triplify source file, using code adapted from the BiSciCol Triplifier
@@ -69,6 +73,7 @@ public class Triplifier {
      * @return
      */
     private void getTriples(String mappingFilepath) {
+
         String status = "\tWriting Temporary Output ...";
         processController.appendStatus(status + "<br>");
 
@@ -87,7 +92,7 @@ public class Triplifier {
         } catch (IOException e) {
             logger.warn("IOException thrown trying to close FileOutputStream object.", e);
         }
-        tripleOutputFile = outputFolder + File.separator + tripleFile.getName();
+        tripleOutputFile = tripleFile.getAbsolutePath();
 
         if (tripleFile.length() < 1)
             throw new FimsRuntimeException("No triples to write!", 500);
@@ -98,25 +103,24 @@ public class Triplifier {
      *
      * @return
      */
-    private String getMapping(Connection connection) {
+    private String getMapping(Connection connection, List<String> colNames) {
         connection.verifyFile();
 
         File mapFile = PathManager.createUniqueFile(filenamePrefix + ".mapping.n3", outputFolder);
-        TabularDataReader tdr = processController.getValidation().getTabularDataReader();
         Mapping mapping = processController.getMapping();
-        D2RQPrinter.printD2RQ(tdr.getColNames(), mapping, mapFile, connection);
-        return outputFolder + File.separator + mapFile.getName();
+        D2RQPrinter.printD2RQ(colNames, mapping, mapFile, connection);
+        return mapFile.getAbsolutePath();
     }
 
     /**
      * Run the triplifier using this class
      */
-    public void run(File sqlLiteFile) {
-        String status = "Converting Data Format ...";
+    public void run(File sqlLiteFile, List<String> colNames) {
+        String status = "\nConverting Data Format ...";
         processController.appendStatus(status + "<br>");
 
         Connection connection = new Connection(sqlLiteFile);
-        String mappingFilepath = getMapping(connection);
+        String mappingFilepath = getMapping(connection, colNames);
         getTriples(mappingFilepath);
     }
 
@@ -143,7 +147,7 @@ public class Triplifier {
         options.addOption("h", "help", false, "print this help message and exit");
         options.addOption("o", "outputDirectory", true, "Output Directory");
         options.addOption("i", "inputFile", true, "Input Spreadsheet");
-        options.addOption("configFile", true, "Use a local config file instead of getting from server");
+        options.addOption("c", "configFile", true, "Use a local config file instead of getting from server");
 //        options.addOption("deepRoots", true, "run deepRoots while triplifying");
         options.addOption("w", "writeFile", true, "Don't use stdout, instead print to file and return location");
 
@@ -203,7 +207,7 @@ public class Triplifier {
         }
         File config = new File(configFile);
 
-        ProcessController processController = new ProcessController();
+        ProcessController processController = new ProcessController(0, null);
 
         Mapping mapping = new Mapping();
         mapping.addMappingRules(config);
@@ -218,14 +222,20 @@ public class Triplifier {
         rm.loadReaders();
         TabularDataReader tdr = rm.openFile(inputFile, mapping.getDefaultSheetName(), outputDirectory);
 
-        validation.run(tdr, "test", outputDirectory, mapping);
+        Dataset dataset = new DatasetTabularDataConverter(tdr).convert(
+                mapping.getAllAttributes(mapping.getDefaultSheetName()),
+                mapping.getDefaultSheetName()
+        );
+
+        boolean isValid = validation.run(tdr, "test", outputDirectory, mapping, dataset);
 
         // add messages to process controller and print
-        validation.getMessages(processController);
+        processController.addMessages(validation.getMessages());
 
-        if (!processController.getHasErrors()) {
+        if (isValid) {
             Triplifier t = new Triplifier("test", outputDirectory, processController);
-            t.run(validation.getSqliteFile());
+            JSONObject sample = (JSONObject) dataset.getSamples().get(0);
+            t.run(validation.getSqliteFile(), new ArrayList<String>(sample.keySet()));
 
             if (stdout) {
                 try (BufferedReader br = new BufferedReader(new FileReader(t.getTripleOutputFile()))) {

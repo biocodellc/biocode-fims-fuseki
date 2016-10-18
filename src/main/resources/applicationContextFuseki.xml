@@ -25,6 +25,10 @@
 
     <bean id="springApplicationContext" class="biocode.fims.utils.SpringApplicationContext"/>
 
-    <bean id="expeditionMinter" class="biocode.fims.bcid.ExpeditionMinter"></bean>
+    <bean id="expeditionMinter" class="biocode.fims.bcid.ExpeditionMinter"/>
+
+    <bean id="ezidUtils" class="biocode.fims.ezid.EzidUtils">
+        <constructor-arg ref="settingsManager"/>
+    </bean>
 
 </beans>
