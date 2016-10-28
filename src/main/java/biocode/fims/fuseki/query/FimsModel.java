@@ -47,8 +47,8 @@ public class FimsModel {
      * @param queryWriter
      * @param getOnlySpecifiedProperties  whether or not to fetch a constrained list of specified properties
      */
-    public FimsModel(Model model, QueryWriter queryWriter, Mapping mapping,
-                     boolean getOnlySpecifiedProperties) {
+    FimsModel(Model model, QueryWriter queryWriter, Mapping mapping,
+              boolean getOnlySpecifiedProperties) {
         this.model = model;
         this.queryWriter = queryWriter;
         this.getOnlySpecifiedProperties = getOnlySpecifiedProperties;
@@ -80,7 +80,7 @@ public class FimsModel {
      *
      * @return
      */
-    public void readRows(String resource) {
+    void readRows(String resource) {
         RDFNode n = model.createResource(model.expandPrefix(resource));
         SimpleSelector selector = new SimpleSelector(null, null, n);
 
@@ -120,7 +120,7 @@ public class FimsModel {
      *
      * @param stmtIterator
      */
-    public void loopObjects(StmtIterator stmtIterator) {
+    private void loopObjects(StmtIterator stmtIterator) {
         depth++;
         while (stmtIterator.hasNext()) {
             Statement statement = stmtIterator.nextStatement();
@@ -148,7 +148,7 @@ public class FimsModel {
      *
      * @return
      */
-    public Property getProperty(String propertyAsString) {
+    private Property getProperty(String propertyAsString) {
         return model.getProperty(propertyAsString);
     }
 
@@ -157,7 +157,7 @@ public class FimsModel {
      *
      * @param resource
      */
-    public boolean createRowFromStatemenetProperties(Resource resource) {
+    private boolean createRowFromStatemenetProperties(Resource resource) {
 
         StmtIterator stmtIterator = resource.listProperties();
         String BCIDString = null;
@@ -208,7 +208,7 @@ public class FimsModel {
      *
      * @return
      */
-    public StmtIterator getRelations(Resource subject) {
+    private StmtIterator getRelations(Resource subject) {
         RDFNode node = model.createResource(model.expandPrefix(subject.asNode().toString()));
         SimpleSelector selector = new SimpleSelector(null, null, node);
 
@@ -222,7 +222,7 @@ public class FimsModel {
      *
      * @return
      */
-    public String writeJSON(File file) {
+    String writeJSON(File file) {
         //return stringBuilder.toString();
         return queryWriter.writeJSON(file);
     }
@@ -230,23 +230,23 @@ public class FimsModel {
     /**
      * Return output as an Excel file
      */
-    public String writeExcel(File file) {
+    String writeExcel(File file) {
         return queryWriter.writeExcel(file);
     }
 
     /**
      * Return output as an HTML table
      */
-    public String writeHTML(File file) {
+    String writeHTML(File file) {
         return queryWriter.writeHTML(file);
     }
 
 
-    public String writeKML(File file) {
+    String writeKML(File file) {
         return queryWriter.writeKML(file);
     }
 
-    public String writeCSPACE(File file, Validation validation) {
+    String writeCSPACE(File file, Validation validation) {
         return queryWriter.writeCSPACE(file, validation);
     }
 
@@ -255,7 +255,11 @@ public class FimsModel {
     }
 
 
-    public String writeTAB(File file) {
+    String writeTAB(File file) {
         return queryWriter.writeTAB(file, true);
+    }
+
+    public String writeCSV(File file) {
+        return queryWriter.writeCSV(file, true);
     }
 }

@@ -218,7 +218,15 @@ public class FimsQueryBuilder {
 
     public String writeTAB() {
         FimsModel fimsModel = run();
-        String filepath = fimsModel.writeTAB(PathManager.createUniqueFile("output.txt", outputDirectory));
+        String filepath = fimsModel.writeTAB(PathManager.createUniqueFile("output.tsv", outputDirectory));
+
+        fimsModel.close();
+        return filepath;
+    }
+
+    public String writeCSV() {
+        FimsModel fimsModel = run();
+        String filepath = fimsModel.writeCSV(PathManager.createUniqueFile("output.csv", outputDirectory));
 
         fimsModel.close();
         return filepath;
