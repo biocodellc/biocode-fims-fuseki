@@ -1,12 +1,10 @@
 package biocode.fims.fuseki.triplify;
 
+import biocode.fims.digester.*;
 import biocode.fims.fimsExceptions.ServerErrorException;
-import biocode.fims.digester.Attribute;
-import biocode.fims.digester.Entity;
-import biocode.fims.digester.Mapping;
-import biocode.fims.digester.Relation;
 import biocode.fims.settings.Connection;
 import biocode.fims.settings.DBsystem;
+import org.apache.commons.digester3.Rules;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,11 +19,16 @@ import java.util.List;
  * a Mapping's connection, entites, and relations.
  */
 public class D2RQPrinter {
+    private static List<Rule> rules;
+    private static Validation validation;
 
     /**
      * Generate D2RQ Mapping Language representation of this Mapping's connection, entities and relations.
      */
-    public static void printD2RQ(List<String> colNames, Mapping mapping, File d2rqMappingFile, Connection connection) {
+    public static void printD2RQ(List<String> colNames, Mapping mapping, Validation pValidation, File d2rqMappingFile, Connection connection) {
+        validation = pValidation;
+        rules = validation.getWorksheets().getFirst().getRules();
+
         try (PrintWriter pw = new PrintWriter(d2rqMappingFile)) {
             printPrefixes(pw);
             printConnectionD2RQ(pw, connection);
@@ -37,6 +40,52 @@ public class D2RQPrinter {
         } catch (FileNotFoundException e) {
             throw new ServerErrorException(e);
         }
+    }
+
+    /**
+     * getting a translation table looks up values in a list that have
+     * defined_by in the list and translates the actual values to the
+     * defined_by values, which is useful in RDF mappings.
+     *
+     * @param columnName
+     *
+     * @return
+     */
+    private static String getTranslationTable(String columnName) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("map:" + columnName + "TranslationTable a d2rq:TranslationTable;\n");
+        Iterator it = rules.iterator();
+        while (it.hasNext()) {
+            Rule r = (Rule) it.next();
+            String listName = null;
+            if (columnName.equals(r.getColumn()) &&
+                    (r.getType().equals("controlledVocabulary") ||
+                            r.getType().equals("checkInXMLFields"))) {
+                listName = r.getList();
+                // Loop all the lists
+                Iterator lists = validation.getLists().iterator();
+                while (lists.hasNext()) {
+                    biocode.fims.digester.List l = (biocode.fims.digester.List) lists.next();
+                    if (l.getAlias().equals(listName)) {
+                        // loop all the list Elements
+                        Iterator listElements = l.getFields().iterator();
+                        while (listElements.hasNext()) {
+                            Field f = (Field) listElements.next();
+                            if (!(f.getDefined_by() == null)) {
+                                sb.append("\td2rq:translation " +
+                                        "[d2rq:databaseValue \"" + f.getValue() + "\"; " +
+                                        "d2rq:rdfValue <" + f.getDefined_by() + ">];\n");
+                            }
+                        }
+                        sb.append("\t.");
+                        // Only valid return element is here, after a single list has been looped
+                        return sb.toString();
+                    }
+                }
+
+            }
+        }
+        return null;
     }
 
     /**
@@ -56,8 +105,8 @@ public class D2RQPrinter {
         pw.println("map:" + subjClassMap + "_" + objClassMap + "_rel" + " a d2rq:PropertyBridge;");
         pw.println("\td2rq:belongsToClassMap " + "map:" + subjClassMap + ";");
         pw.println("\td2rq:property <" + relation.getPredicate() + ">;");
-        pw.println(getPersistentIdentifierMapping(objEntity));
-        pw.println(printCondition(objEntity.getWorksheetUniqueKey()));
+        pw.println(getPersistentIdentifierMapping(subjEntity, objEntity));
+        //pw.println(printCondition(objEntity.getWorksheetUniqueKey()));
         //pw.println("\td2rq:condition \"" + objEntity.getWorksheetUniqueKey() + " <> ''\";");
         pw.println("\t.");
     }
@@ -77,17 +126,34 @@ public class D2RQPrinter {
     private static void printEntityD2RQ(PrintWriter pw, Entity entity, List<String> colNames) {
         pw.println("map:" + getClassMap(entity) + " a d2rq:ClassMap;");
         pw.println("\td2rq:dataStorage " + "map:database;");
-        pw.println(getPersistentIdentifierMapping(entity));
+
+        // HACK--- hardcoding for testing
+        /*if (entity.getConceptURI().equalsIgnoreCase("http://purl.obolibrary.org/obo/PPO_0000001")) {
+            //pw.println(getPersistentIdentifierMapping(null, entity));
+            // HACK -- a duplicate uriPattern when calling the above function, hardcoding
+            // the URI pattern below....
+            pw.println("\td2rq:uriPattern \"urn:x-bsc:wppsCM:@@Samples.wholePlantPhenologicalStageHASH@@\";\n");
+            //pw.println("\td2rq:uriColumn \"Samples.Phenophase_Description\";\n");
+            // Use a translation table to t
+            String translationTable = getTranslationTable("Phenophase_Description");
+            // Complete the propertyBridge appropriately before defining the translation table
+            if (translationTable != null) {
+                pw.println("\td2rq:translateWith map:Phenophase_DescriptionTranslationTable;\n");
+            }
+            pw.println("\t.");
+
+            // Now define the translation Table
+            if (translationTable != null) {
+                // HACK -- don't print the translation table since i know it already exists!
+                pw.println(translationTable);
+            }
+
+        } else {
+        */
+        pw.println(getPersistentIdentifierMapping(null, entity));
         pw.println("\td2rq:class <" + entity.getConceptURI() + ">;");
-
-        // ensures non-null values ... don't apply if this is a hash
-        if (!entity.getColumn().toLowerCase().contains("hash")) {
-            pw.println(printCondition(entity.getColumn()));
-        }
-
-        // TODO: add in extra conditions (May not be necessary)
-        //pw.println(getExtraConditions());
         pw.println("\t.");
+        // }
 
         // Get a list of colNames that we know are good from the spreadsheet
         // Normalize the column names so they can be mapped according to dhow they appear in SQLite
@@ -108,7 +174,9 @@ public class D2RQPrinter {
     /**
      * All conditions that require some value, use this convenience method
      * which strips off all references to BNODE uniquekey
+     *
      * @param columnName
+     *
      * @return
      */
     private static String printCondition(String columnName) {
@@ -138,17 +206,47 @@ public class D2RQPrinter {
 
         // Only print this column if it is in a list of colNames
         if (runColumn) {
+            StringBuilder sb = new StringBuilder();
             String classMapString = "map:" + classMap + "_" + attribute.getColumn();
-            pw.println(classMapString + " a d2rq:PropertyBridge;");
-            pw.println("\td2rq:belongsToClassMap " + "map:" + classMap + ";");
-            pw.println("\td2rq:property <" + attribute.getUri() + ">;");
-            pw.println("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";");
-            pw.println(printCondition(table + "." + attribute.getColumn()));
-            //pw.println("\td2rq:condition \"" + table + "." + attribute.getColumn() + " <> ''\";");
+            sb.append(classMapString + " a d2rq:PropertyBridge;\n");
+            sb.append("\td2rq:belongsToClassMap " + "map:" + classMap + ";\n");
+            sb.append(printCondition(table + "." + attribute.getColumn()) + "\n");
             // Specify an equivalence, which is isDefinedBy
             classMapStringEquivalence = classMapString + "_Equivalence";
-            pw.println("\td2rq:additionalPropertyDefinitionProperty " + classMapStringEquivalence + ";");
-            pw.println("\t.");
+            sb.append("\td2rq:additionalPropertyDefinitionProperty " + classMapStringEquivalence + ";\n");
+
+            // Get a translation, if appropriate
+            String translationTable = getTranslationTable(attribute.getColumn());
+            if (translationTable != null) {
+                // Print the property bridge spec that references the translation table
+                StringBuilder translationTableSB = sb;
+                translationTableSB.append("\td2rq:property <" + attribute.getUri() + ">;\n");
+                translationTableSB.append("\td2rq:translateWith map:" + attribute.getColumn() + "TranslationTable;\n");
+                translationTableSB.append("\td2rq:uriColumn \"" + table + "." + attribute.getColumn() + "\";\n");
+                translationTableSB.append("\t.\n");
+                pw.println(translationTableSB.toString());
+
+                // Print the translation table itself
+                pw.println(translationTable);
+
+                // Now print a regular version of this column
+                StringBuilder sb2 = new StringBuilder();
+                sb2.append("map:" + classMap + "_" + attribute.getColumn() + "Label a d2rq:PropertyBridge;\n");
+                sb2.append("\td2rq:belongsToClassMap " + "map:" + classMap + ";\n");
+                sb2.append(printCondition(table + "." + attribute.getColumn()) + "\n");
+                sb2.append("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";\n");
+                // This version, with translation Table should just be a Label
+                sb2.append("\td2rq:property <rdfs:Label>;\n");
+                sb2.append("\t.\n");
+                pw.println(sb2.toString());
+            }
+            // Al other cases just specify the column and finish
+            else {
+                sb.append("\td2rq:property <" + attribute.getUri() + ">;\n");
+                sb.append("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";\n");
+                sb.append("\t.\n");
+                pw.println(sb.toString());
+            }
 
             // Always use isDefinedBy, even if the user has not expressed it explicitly.  We do this by
             // using the uri value if NO isDefinedBy is expressed.
@@ -201,7 +299,7 @@ public class D2RQPrinter {
                         // Set required function parameters
                         if (attribute.getType().equals("all"))
                             pw.println(printCondition(table + "." + columns[i]));
-                            //pw.println("\td2rq:condition \"" + table + "." + columns[i] + " <> ''\";");
+                        //pw.println("\td2rq:condition \"" + table + "." + columns[i] + " <> ''\";");
                         result.append(columns[i]);
                     }
                     result.append("\";");
@@ -211,7 +309,7 @@ public class D2RQPrinter {
                 // Assume that columns are Year, Month, and Day EXACTLY
                 else if (attribute.getType().equals("ymd")) {
                     // Require Year
-                    pw.println(printCondition( table + "." + columns[0]));
+                    pw.println(printCondition(table + "." + columns[0]));
                     //pw.println("\td2rq:condition \"" + table + "." + columns[0] + " <> ''\";");
 
                     result.append("yearCollected ||  ifnull(nullif('-'||substr('0'||monthCollected,-2,2),'-0') || " +
@@ -286,40 +384,56 @@ public class D2RQPrinter {
     /**
      * Sets the URI as a identifier to a column, or not, according to D2RQ conventions
      *
-     * @param entity
+     * @param subjEntity
+     * @param objEntity
      *
      * @return
      */
-    private static String getPersistentIdentifierMapping(Entity entity) {
-        String identifier = String.valueOf(entity.getIdentifier());
+    private static String getPersistentIdentifierMapping(Entity subjEntity, Entity objEntity) {
+        String identifier = String.valueOf(objEntity.getIdentifier());
 
         // apply the scheme urn: and the x-factor sub-scheme biscicol for
         // all identifiers that we have no information for.
         if (identifier == null || identifier.equals("null")) {
-            identifier = "urn:x-biscicol:" + entity.getConceptAlias() + ":";
+            identifier = "urn:x-biscicol:" + objEntity.getConceptAlias() + ":";
         }
 
-        // This is a bNode so use this syntax in return statement
-        // The bNode definition consists of all of the attributes as column names for the bNode
-        if (entity.getWorksheetUniqueKey().contains("BNODE")) {
-            // The column name with suffix BNODE does not actually exist, so we strip the
-            // BNODE off the end of the column name
-            //String actualColumnName = entity.getColumn().split("BNODE")[0];
-            LinkedList bNodeAttributes = entity.getAttributes();
-            Iterator it = bNodeAttributes.iterator();
-            StringBuilder columnNames = new StringBuilder();
-            while (it.hasNext()) {
-                // if this is the 2nd column name encountered, append a comma
-                if (columnNames.length() > 0) columnNames.append(",");
-                Attribute attribute = (Attribute)it.next();
-
-                columnNames.append(entity.getWorksheet() + "." + attribute.getColumn());
+        // work with BNODE specification as the persistent identifier mapping
+        if (objEntity.getWorksheetUniqueKey().contains("BNODE")) {
+            // If there is a subject Entity then we want to specify this is the relationship type
+            // This is the case when constructing property bridges so we say that this is
+            // referring to a particular classmap
+            if (subjEntity != null) {
+                return "\td2rq:refersToClassMap map:" + getClassMap(objEntity) + ";";
             }
-            return "\td2rq:bNodeIdColumns \"" + columnNames + "\";";
+            // If there is no subjectEntity then this is a classmap definition
+            else {
+                // Get all of the attributes that make up this bNode... important that
+                // we're explicit with the attributes so we know that this bNode is unique
+                LinkedList bNodeAttributes = objEntity.getAttributes();
+                Iterator it = bNodeAttributes.iterator();
+                StringBuilder columnNames = new StringBuilder();
+                while (it.hasNext()) {
+                    // if this is the 2nd column name encountered, append a comma
+                    if (columnNames.length() > 0) columnNames.append(",");
+                    Attribute attribute = (Attribute) it.next();
+
+                    columnNames.append(objEntity.getWorksheet() + "." + attribute.getColumn());
+                }
+                return "\td2rq:bNodeIdColumns \"" + columnNames + "\";";
+            }
         }
         // Any other identifier type besides bNode uses uriPattern to define the actual URI
+        // Also, any other identifier type should have a condition associated with it
         else {
-            return "\td2rq:uriPattern \"" + identifier + "@@" + entity.getColumn() + "@@\";";
+            String returnValue = "\td2rq:uriPattern \"" + identifier + "@@" + objEntity.getColumn() + "@@\";";
+            // ensures non-null values ... don't apply if this is a hash
+            // otherwise, print a conditional statement
+            if (!objEntity.getColumn().toLowerCase().contains("hash")) {
+                returnValue += printCondition(objEntity.getColumn());
+            }
+            return returnValue;
+
         }
 
     }

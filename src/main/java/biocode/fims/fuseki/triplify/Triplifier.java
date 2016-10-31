@@ -118,9 +118,11 @@ public class Triplifier {
         connection.verifyFile();
 
         File mapFile = PathManager.createUniqueFile(filenamePrefix + ".mapping.n3", outputFolder);
-        TabularDataReader tdr = processController.getValidation().getTabularDataReader();
+        Validation validation = processController.getValidation();
+        TabularDataReader tdr = validation.getTabularDataReader();
         Mapping mapping = processController.getMapping();
-        D2RQPrinter.printD2RQ(tdr.getColNames(), mapping, mapFile, connection);
+
+        D2RQPrinter.printD2RQ(tdr.getColNames(), mapping, validation, mapFile, connection);
         return outputFolder + File.separator + mapFile.getName();
     }
 
