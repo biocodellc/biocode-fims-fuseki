@@ -4,7 +4,6 @@ import biocode.fims.digester.*;
 import biocode.fims.fimsExceptions.ServerErrorException;
 import biocode.fims.settings.Connection;
 import biocode.fims.settings.DBsystem;
-import org.apache.commons.digester3.Rules;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -15,8 +14,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * This class has the necessary functions for generating the D2RQ Mapping Language representation of
- * a Mapping's connection, entites, and relations.
+ * This class has the necessary functions for generating the D2RQ Mapping Language
+ * File, which triplifies.
  */
 public class D2RQPrinter {
     private static List<Rule> rules;
@@ -43,8 +42,8 @@ public class D2RQPrinter {
     }
 
     /**
-     * getting a translation table looks up values in a list that have
-     * defined_by in the list and translates the actual values to the
+     * Getting a translation table looks up values in a list that have
+     * defined_by in a validation list element and translates the actual values to the
      * defined_by values, which is useful in RDF mappings.
      *
      * @param columnName
@@ -106,8 +105,6 @@ public class D2RQPrinter {
         pw.println("\td2rq:belongsToClassMap " + "map:" + subjClassMap + ";");
         pw.println("\td2rq:property <" + relation.getPredicate() + ">;");
         pw.println(getPersistentIdentifierMapping(subjEntity, objEntity));
-        //pw.println(printCondition(objEntity.getWorksheetUniqueKey()));
-        //pw.println("\td2rq:condition \"" + objEntity.getWorksheetUniqueKey() + " <> ''\";");
         pw.println("\t.");
     }
 
@@ -122,38 +119,18 @@ public class D2RQPrinter {
 
     /**
      * Generate D2RQ Mapping Language representation of this Entity with Attributes.
+     * Note that i attempted translation Table mappings against ClassMap but
+     * wasn't able to get it to work.
+     * @param pw
+     * @param entity
+     * @param colNames
      */
     private static void printEntityD2RQ(PrintWriter pw, Entity entity, List<String> colNames) {
         pw.println("map:" + getClassMap(entity) + " a d2rq:ClassMap;");
         pw.println("\td2rq:dataStorage " + "map:database;");
-
-        // HACK--- hardcoding for testing
-        /*if (entity.getConceptURI().equalsIgnoreCase("http://purl.obolibrary.org/obo/PPO_0000001")) {
-            //pw.println(getPersistentIdentifierMapping(null, entity));
-            // HACK -- a duplicate uriPattern when calling the above function, hardcoding
-            // the URI pattern below....
-            pw.println("\td2rq:uriPattern \"urn:x-bsc:wppsCM:@@Samples.wholePlantPhenologicalStageHASH@@\";\n");
-            //pw.println("\td2rq:uriColumn \"Samples.Phenophase_Description\";\n");
-            // Use a translation table to t
-            String translationTable = getTranslationTable("Phenophase_Description");
-            // Complete the propertyBridge appropriately before defining the translation table
-            if (translationTable != null) {
-                pw.println("\td2rq:translateWith map:Phenophase_DescriptionTranslationTable;\n");
-            }
-            pw.println("\t.");
-
-            // Now define the translation Table
-            if (translationTable != null) {
-                // HACK -- don't print the translation table since i know it already exists!
-                pw.println(translationTable);
-            }
-
-        } else {
-        */
         pw.println(getPersistentIdentifierMapping(null, entity));
         pw.println("\td2rq:class <" + entity.getConceptURI() + ">;");
         pw.println("\t.");
-        // }
 
         // Get a list of colNames that we know are good from the spreadsheet
         // Normalize the column names so they can be mapped according to dhow they appear in SQLite
@@ -187,7 +164,9 @@ public class D2RQPrinter {
     }
 
     /**
-     * * Generate D2RQ Mapping Language representation of this Attribute.
+     * Generate D2RQ Mapping Language representation of this Attribute.
+     * Most attributes will be represented as  Property Bridges, that have
+     * belong to a ClassMap
      *
      * @param parent
      * @param colNames
@@ -198,14 +177,14 @@ public class D2RQPrinter {
         String table = parent.getWorksheet();
         String classMapStringEquivalence = "";
 
+        // Check if this column name is good
         Boolean runColumn = false;
-
         if (colNames.contains(attribute.getColumn())) {
             runColumn = true;
         }
 
-        // Only print this column if it is in a list of colNames
         if (runColumn) {
+            // Define the start of a Property Brdige
             StringBuilder sb = new StringBuilder();
             String classMapString = "map:" + classMap + "_" + attribute.getColumn();
             sb.append(classMapString + " a d2rq:PropertyBridge;\n");
@@ -215,7 +194,7 @@ public class D2RQPrinter {
             classMapStringEquivalence = classMapString + "_Equivalence";
             sb.append("\td2rq:additionalPropertyDefinitionProperty " + classMapStringEquivalence + ";\n");
 
-            // Get a translation, if appropriate
+            // Get a translation.  If it is not null then process it
             String translationTable = getTranslationTable(attribute.getColumn());
             if (translationTable != null) {
                 // Print the property bridge spec that references the translation table
@@ -229,7 +208,7 @@ public class D2RQPrinter {
                 // Print the translation table itself
                 pw.println(translationTable);
 
-                // Now print a regular version of this column
+                // Now print another Property Bridge to define outputs for rdfs:Label
                 StringBuilder sb2 = new StringBuilder();
                 sb2.append("map:" + classMap + "_" + attribute.getColumn() + "Label a d2rq:PropertyBridge;\n");
                 sb2.append("\td2rq:belongsToClassMap " + "map:" + classMap + ";\n");
@@ -240,7 +219,7 @@ public class D2RQPrinter {
                 sb2.append("\t.\n");
                 pw.println(sb2.toString());
             }
-            // Al other cases just specify the column and finish
+            // If no translation table is found, just declare the property bridge
             else {
                 sb.append("\td2rq:property <" + attribute.getUri() + ">;\n");
                 sb.append("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";\n");
@@ -258,11 +237,13 @@ public class D2RQPrinter {
                 pw.println("\td2rq:propertyValue <" + attribute.getUri() + ">;");
             }
             pw.println("\t.");
-            /*
+
+        }
+         /*
            Loop multi-value columns
            This is used when the Configuration file indicates an attribute that should be composed of more than one column
             */
-        } else if (attribute.getColumn().contains(",")) {
+        else if (attribute.getColumn().contains(",")) {
 
             // TODO: clean this up and integrate with above code.
             String tempColumnName = attribute.getColumn().replace(",", "");
