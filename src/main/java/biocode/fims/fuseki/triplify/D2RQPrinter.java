@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -40,7 +41,6 @@ public class D2RQPrinter {
 
     /**
      * Generate D2RQ Mapping Language representation of this Relation.
-     *
      */
     private static void printRelationD2RQ(PrintWriter pw, Relation relation, Mapping mapping) {
 
@@ -57,7 +57,8 @@ public class D2RQPrinter {
         pw.println("\td2rq:belongsToClassMap " + "map:" + subjClassMap + ";");
         pw.println("\td2rq:property <" + relation.getPredicate() + ">;");
         pw.println(getPersistentIdentifierMapping(objEntity));
-        pw.println("\td2rq:condition \"" + objEntity.getWorksheetUniqueKey() + " <> ''\";");
+        pw.println(printCondition(objEntity.getWorksheetUniqueKey()));
+        //pw.println("\td2rq:condition \"" + objEntity.getWorksheetUniqueKey() + " <> ''\";");
         pw.println("\t.");
     }
 
@@ -78,16 +79,18 @@ public class D2RQPrinter {
         pw.println("\td2rq:dataStorage " + "map:database;");
         pw.println(getPersistentIdentifierMapping(entity));
         pw.println("\td2rq:class <" + entity.getConceptURI() + ">;");
+
         // ensures non-null values ... don't apply if this is a hash
-        if (!entity.getColumn().contains("hash"))
-            pw.println("\td2rq:condition \"" + entity.getColumn() + " <> ''\";");
+        if (!entity.getColumn().toLowerCase().contains("hash")) {
+            pw.println(printCondition(entity.getColumn()));
+        }
 
         // TODO: add in extra conditions (May not be necessary)
         //pw.println(getExtraConditions());
         pw.println("\t.");
 
         // Get a list of colNames that we know are good from the spreadsheet
-        // Normalize the column names so they can be mapped according to how they appear in SQLite
+        // Normalize the column names so they can be mapped according to dhow they appear in SQLite
         ArrayList<String> normalizedColNames = new ArrayList<String>();
         Iterator it = colNames.iterator();
         while (it.hasNext()) {
@@ -100,6 +103,19 @@ public class D2RQPrinter {
             for (Attribute attribute : entity.getAttributes())
                 printAttributeD2RQ(pw, attribute, entity, normalizedColNames);
         }
+    }
+
+    /**
+     * All conditions that require some value, use this convenience method
+     * which strips off all references to BNODE uniquekey
+     * @param columnName
+     * @return
+     */
+    private static String printCondition(String columnName) {
+        // BNODE columns do not actually have BNODE on the end, so remove it
+        String actualColumnName = columnName.split("BNODE")[0];
+
+        return "\td2rq:condition \"" + actualColumnName + " <> ''\";";
     }
 
     /**
@@ -127,7 +143,8 @@ public class D2RQPrinter {
             pw.println("\td2rq:belongsToClassMap " + "map:" + classMap + ";");
             pw.println("\td2rq:property <" + attribute.getUri() + ">;");
             pw.println("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";");
-            pw.println("\td2rq:condition \"" + table + "." + attribute.getColumn() + " <> ''\";");
+            pw.println(printCondition(table + "." + attribute.getColumn()));
+            //pw.println("\td2rq:condition \"" + table + "." + attribute.getColumn() + " <> ''\";");
             // Specify an equivalence, which is isDefinedBy
             classMapStringEquivalence = classMapString + "_Equivalence";
             pw.println("\td2rq:additionalPropertyDefinitionProperty " + classMapStringEquivalence + ";");
@@ -137,7 +154,7 @@ public class D2RQPrinter {
             // using the uri value if NO isDefinedBy is expressed.
             pw.println(classMapStringEquivalence + " a d2rq:AdditionalProperty;");
             pw.println("\td2rq:propertyName <" + attribute.getIsDefinedByURIString() + ">;");
-            if (attribute.getDefined_by()!= null) {
+            if (attribute.getDefined_by() != null) {
                 pw.println("\td2rq:propertyValue <" + attribute.getDefined_by() + ">;");
             } else {
                 pw.println("\td2rq:propertyValue <" + attribute.getUri() + ">;");
@@ -183,7 +200,8 @@ public class D2RQPrinter {
                             result.append(" || '" + attribute.getDelimited_by() + "' || ");
                         // Set required function parameters
                         if (attribute.getType().equals("all"))
-                            pw.println("\td2rq:condition \"" + table + "." + columns[i] + " <> ''\";");
+                            pw.println(printCondition(table + "." + columns[i]));
+                            //pw.println("\td2rq:condition \"" + table + "." + columns[i] + " <> ''\";");
                         result.append(columns[i]);
                     }
                     result.append("\";");
@@ -193,7 +211,8 @@ public class D2RQPrinter {
                 // Assume that columns are Year, Month, and Day EXACTLY
                 else if (attribute.getType().equals("ymd")) {
                     // Require Year
-                    pw.println("\td2rq:condition \"" + table + "." + columns[0] + " <> ''\";");
+                    pw.println(printCondition( table + "." + columns[0]));
+                    //pw.println("\td2rq:condition \"" + table + "." + columns[0] + " <> ''\";");
 
                     result.append("yearCollected ||  ifnull(nullif('-'||substr('0'||monthCollected,-2,2),'-0') || " +
                             "ifnull(nullif('-'||substr('0'||dayCollected,-2,2),'-0'),'')" +
@@ -268,16 +287,40 @@ public class D2RQPrinter {
      * Sets the URI as a identifier to a column, or not, according to D2RQ conventions
      *
      * @param entity
+     *
      * @return
      */
     private static String getPersistentIdentifierMapping(Entity entity) {
         String identifier = String.valueOf(entity.getIdentifier());
 
-        if (identifier == null) {
+        // apply the scheme urn: and the x-factor sub-scheme biscicol for
+        // all identifiers that we have no information for.
+        if (identifier == null || identifier.equals("null")) {
             identifier = "urn:x-biscicol:" + entity.getConceptAlias() + ":";
         }
 
-        return "\td2rq:uriPattern \"" + identifier + "@@" + entity.getColumn() + "@@\";";
+        // This is a bNode so use this syntax in return statement
+        // The bNode definition consists of all of the attributes as column names for the bNode
+        if (entity.getWorksheetUniqueKey().contains("BNODE")) {
+            // The column name with suffix BNODE does not actually exist, so we strip the
+            // BNODE off the end of the column name
+            //String actualColumnName = entity.getColumn().split("BNODE")[0];
+            LinkedList bNodeAttributes = entity.getAttributes();
+            Iterator it = bNodeAttributes.iterator();
+            StringBuilder columnNames = new StringBuilder();
+            while (it.hasNext()) {
+                // if this is the 2nd column name encountered, append a comma
+                if (columnNames.length() > 0) columnNames.append(",");
+                Attribute attribute = (Attribute)it.next();
+
+                columnNames.append(entity.getWorksheet() + "." + attribute.getColumn());
+            }
+            return "\td2rq:bNodeIdColumns \"" + columnNames + "\";";
+        }
+        // Any other identifier type besides bNode uses uriPattern to define the actual URI
+        else {
+            return "\td2rq:uriPattern \"" + identifier + "@@" + entity.getColumn() + "@@\";";
+        }
 
     }
 }

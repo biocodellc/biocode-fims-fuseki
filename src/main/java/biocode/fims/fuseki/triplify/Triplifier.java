@@ -31,6 +31,8 @@ public class Triplifier {
     private String tripleOutputFile;
     private String filenamePrefix;
     private ProcessController processController;
+    private String outputLanguage = FileUtils.langNTriple;
+
 
     private static Logger logger = LoggerFactory.getLogger(Triplifier.class);
 
@@ -45,6 +47,19 @@ public class Triplifier {
         this.outputFolder = outputFolder;
         this.filenamePrefix = filenamePrefix;
         this.processController = processController;
+
+    }
+
+    public String getOutputLanguage() {
+        return outputLanguage;
+    }
+
+    /**
+     * Set the output language using the FileUtils.* lang constants
+     * @param outputLanguage
+     */
+    public void setOutputLanguage(String outputLanguage) {
+        this.outputLanguage = outputLanguage;
     }
 
     public String getOutputFolder() {
@@ -80,7 +95,8 @@ public class Triplifier {
         File tripleFile = PathManager.createUniqueFile(filenamePrefix + ".n3", outputFolder);
         try {
             FileOutputStream fos = new FileOutputStream(tripleFile);
-            model.write(fos, FileUtils.langNTriple, null);
+
+            model.write(fos, getOutputLanguage(), null);
             fos.close();
         } catch (FileNotFoundException e) {
             throw new FimsRuntimeException(500, e);
