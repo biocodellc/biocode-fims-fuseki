@@ -11,6 +11,9 @@ repositories {
     mavenCentral()
 }
 
+// this is necessary for the subprojects.each closure to work correctly when dealing with the server configuration dependencies
+subprojects.each { subproject -> evaluationDependsOn(subproject.path) }
+
 //noinspection GroovyAssignabilityCheck
 configurations {
     server
@@ -57,4 +60,18 @@ libsDirName = "../dist"
 //noinspection GroovyAssignabilityCheck
 clean {
     delete libsDir
+}
+
+run {
+    subprojects.each { subproject ->
+        project.configurations.server.dependencies.addAll(subproject.configurations.server.dependencies)
+    }
+
+    classpath = configurations.server + configurations.compile + sourceSets.main.runtimeClasspath
+
+    if ( project.hasProperty("appArgs") ) {
+
+        args Eval.me(appArgs)
+
+    }
 }
