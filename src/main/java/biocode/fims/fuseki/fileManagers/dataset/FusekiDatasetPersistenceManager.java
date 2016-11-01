@@ -65,6 +65,11 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
     }
 
     @Override
+    public boolean validate(ProcessController processController) {
+        return true;
+    }
+
+    @Override
     public String getWebAddress() {
         return webAddress;
     }
