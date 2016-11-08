@@ -18,21 +18,17 @@ import java.util.List;
  * File, which triplifies.
  */
 public class D2RQPrinter {
-    private static List<Rule> rules;
-    private static Validation validation;
 
     /**
      * Generate D2RQ Mapping Language representation of this Mapping's connection, entities and relations.
      */
     public static void printD2RQ(List<String> colNames, Mapping mapping, Validation pValidation, File d2rqMappingFile, Connection connection) {
-        validation = pValidation;
-        rules = validation.getWorksheets().getFirst().getRules();
 
         try (PrintWriter pw = new PrintWriter(d2rqMappingFile)) {
             printPrefixes(pw);
             printConnectionD2RQ(pw, connection);
             for (Entity entity : mapping.getEntities())
-                printEntityD2RQ(pw, entity, colNames);
+                printEntityD2RQ(pw, entity, colNames, pValidation);
             for (Relation relation : mapping.getRelations()) {
                 printRelationD2RQ(pw, relation, mapping);
             }
@@ -50,10 +46,10 @@ public class D2RQPrinter {
      *
      * @return
      */
-    private static String getTranslationTable(String columnName) {
+    private static String getTranslationTable(String columnName, Validation validation) {
         StringBuilder sb = new StringBuilder();
         sb.append("map:" + columnName + "TranslationTable a d2rq:TranslationTable;\n");
-        Iterator it = rules.iterator();
+        Iterator it = validation.getWorksheets().getFirst().getRules().iterator();
         while (it.hasNext()) {
             Rule r = (Rule) it.next();
             String listName = null;
@@ -132,7 +128,7 @@ public class D2RQPrinter {
      * @param entity
      * @param colNames
      */
-    private static void printEntityD2RQ(PrintWriter pw, Entity entity, List<String> colNames) {
+    private static void printEntityD2RQ(PrintWriter pw, Entity entity, List<String> colNames, Validation validation) {
         pw.println("map:" + getClassMap(entity) + " a d2rq:ClassMap;");
         pw.println("\td2rq:dataStorage " + "map:database;");
         pw.println(getPersistentIdentifierMapping(null, entity));
@@ -151,7 +147,7 @@ public class D2RQPrinter {
         // Loop through attributes associated with this Entity
         if (entity.getAttributes().size() > 0) {
             for (Attribute attribute : entity.getAttributes())
-                printAttributeD2RQ(pw, attribute, entity, normalizedColNames);
+                printAttributeD2RQ(pw, attribute, entity, normalizedColNames, validation);
         }
     }
 
@@ -178,7 +174,7 @@ public class D2RQPrinter {
      * @param parent
      * @param colNames
      */
-    private static void printAttributeD2RQ(PrintWriter pw, Attribute attribute, Entity parent, List<String> colNames) {
+    private static void printAttributeD2RQ(PrintWriter pw, Attribute attribute, Entity parent, List<String> colNames, Validation validation) {
 
         String classMap = getClassMap(parent);
         String table = parent.getWorksheet();
@@ -204,7 +200,7 @@ public class D2RQPrinter {
             sb.append("\td2rq:additionalPropertyDefinitionProperty " + classMapStringEquivalence + ";\n");
 
             // Get a translation.  If it is not null then process it
-            String translationTable = getTranslationTable(attribute.getColumn());
+            String translationTable = getTranslationTable(attribute.getColumn(), validation);
             if (translationTable != null) {
                 // Print the property bridge spec that references the translation table
                 StringBuilder translationTableSB = sb;
