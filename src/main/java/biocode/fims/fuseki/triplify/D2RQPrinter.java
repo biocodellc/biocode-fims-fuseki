@@ -68,17 +68,23 @@ public class D2RQPrinter {
                     if (l.getAlias().equals(listName)) {
                         // loop all the list Elements
                         Iterator listElements = l.getFields().iterator();
+                        Boolean foundDefinedBy = false;
                         while (listElements.hasNext()) {
                             Field f = (Field) listElements.next();
                             if (!(f.getDefined_by() == null)) {
                                 sb.append("\td2rq:translation " +
                                         "[d2rq:databaseValue \"" + f.getValue() + "\"; " +
                                         "d2rq:rdfValue <" + f.getDefined_by() + ">];\n");
+                                foundDefinedBy = true;
+
                             }
                         }
                         sb.append("\t.");
                         // Only valid return element is here, after a single list has been looped
-                        return sb.toString();
+                        if (foundDefinedBy)
+                            return sb.toString();
+                        else
+                            return null;
                     }
                 }
 
@@ -121,6 +127,7 @@ public class D2RQPrinter {
      * Generate D2RQ Mapping Language representation of this Entity with Attributes.
      * Note that i attempted translation Table mappings against ClassMap but
      * wasn't able to get it to work.
+     *
      * @param pw
      * @param entity
      * @param colNames
@@ -180,7 +187,9 @@ public class D2RQPrinter {
         // Check if this column name is good
         Boolean runColumn = false;
         if (colNames.contains(attribute.getColumn())) {
-            runColumn = true;
+            if (!attribute.getColumn().contains(",")) {
+                runColumn = true;
+            }
         }
 
         if (runColumn) {
