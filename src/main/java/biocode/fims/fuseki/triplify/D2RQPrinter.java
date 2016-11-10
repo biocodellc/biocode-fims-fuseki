@@ -43,38 +43,33 @@ public class D2RQPrinter {
      * defined_by values, which is useful in RDF mappings.
      *
      * @param columnName
-     *
      * @return
      */
     private static String getTranslationTable(String columnName, Validation validation) {
         StringBuilder sb = new StringBuilder();
-        sb.append("map:" + columnName + "TranslationTable a d2rq:TranslationTable;\n");
-        Iterator it = validation.getWorksheets().getFirst().getRules().iterator();
-        while (it.hasNext()) {
-            Rule r = (Rule) it.next();
-            String listName = null;
+
+        for (Rule r : validation.getWorksheets().getFirst().getRules()) {
+
             if (columnName.equals(r.getColumn()) &&
                     (r.getType().equals("controlledVocabulary") ||
                             r.getType().equals("checkInXMLFields"))) {
-                listName = r.getList();
-                // Loop all the lists
-                Iterator lists = validation.getLists().iterator();
-                while (lists.hasNext()) {
-                    biocode.fims.digester.List l = (biocode.fims.digester.List) lists.next();
-                    if (l.getAlias().equals(listName)) {
-                        // loop all the list Elements
-                        Iterator listElements = l.getFields().iterator();
-                        while (listElements.hasNext()) {
-                            Field f = (Field) listElements.next();
-                            if (!(f.getDefined_by() == null)) {
-                                sb.append("\td2rq:translation " +
-                                        "[d2rq:databaseValue \"" + f.getValue() + "\"; " +
-                                        "d2rq:rdfValue <" + f.getDefined_by() + ">];\n");
-                            }
+
+                biocode.fims.digester.List list = validation.findList(r.getList());
+
+                if (list != null) {
+
+                    for (Field f : list.getFields()) {
+                        if (f.getDefined_by() != null) {
+                            sb.append("\td2rq:translation " +
+                                    "[d2rq:databaseValue \"" + f.getValue() + "\"; " +
+                                    "d2rq:rdfValue <" + f.getDefined_by() + ">];\n");
                         }
+                    }
+
+                    // only return the translationTable if the list fields contain a defined_by
+                    if (sb.length() > 0) {
                         sb.append("\t.");
-                        // Only valid return element is here, after a single list has been looped
-                        return sb.toString();
+                        return "map:" + columnName + "TranslationTable a d2rq:TranslationTable;\n" + sb.toString();
                     }
                 }
 
@@ -117,6 +112,7 @@ public class D2RQPrinter {
      * Generate D2RQ Mapping Language representation of this Entity with Attributes.
      * Note that i attempted translation Table mappings against ClassMap but
      * wasn't able to get it to work.
+     *
      * @param pw
      * @param entity
      * @param colNames
@@ -149,7 +145,6 @@ public class D2RQPrinter {
      * which strips off all references to BNODE uniquekey
      *
      * @param columnName
-     *
      * @return
      */
     private static String printCondition(String columnName) {
@@ -363,7 +358,6 @@ public class D2RQPrinter {
      *
      * @param subjEntity
      * @param objEntity
-     *
      * @return
      */
     private static String getPersistentIdentifierMapping(Entity subjEntity, Entity objEntity) {
