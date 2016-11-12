@@ -247,7 +247,7 @@ public class FimsQueryBuilder {
             e.printStackTrace();
         }
 
-        TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, false, justData);
+        TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, justData);
         String filepath = t.createExcelFileFromExistingSources("Samples", outputDirectory).getAbsolutePath();
 
         fimsModel.close();
