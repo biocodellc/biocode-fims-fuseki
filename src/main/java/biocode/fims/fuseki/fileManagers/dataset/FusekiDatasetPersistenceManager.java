@@ -1,9 +1,7 @@
 package biocode.fims.fuseki.fileManagers.dataset;
 
 import biocode.fims.entities.Bcid;
-import biocode.fims.fileManagers.dataset.Dataset;
 import biocode.fims.fileManagers.dataset.DatasetPersistenceManager;
-import biocode.fims.fimsExceptions.ServerErrorException;
 import biocode.fims.fuseki.Uploader;
 import biocode.fims.fuseki.query.FimsQueryBuilder;
 import biocode.fims.fuseki.triplify.Triplifier;
@@ -12,12 +10,9 @@ import biocode.fims.service.BcidService;
 import biocode.fims.service.ExpeditionService;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -28,7 +23,7 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
     private final BcidService bcidService;
     private String graph;
     private String webAddress;
-    private Dataset dataset;
+    private JSONArray dataset;
 
     @Autowired
     public FusekiDatasetPersistenceManager(ExpeditionService expeditionService, BcidService bcidService) {
@@ -37,7 +32,7 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
     }
 
     @Override
-    public void upload(ProcessController processController, Dataset dataset) {
+    public void upload(ProcessController processController, JSONArray dataset) {
         this.dataset = dataset;
         String outputPrefix = processController.getExpeditionCode() + "_output";
 
@@ -51,7 +46,7 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
         );
 
         // the D2Rq mapping file must match the
-        JSONObject sample = (JSONObject) dataset.getSamples().get(0);
+        JSONObject sample = (JSONObject) dataset.get(0);
         triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<String>(sample.keySet()));
 
         // upload the dataset
@@ -80,7 +75,7 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
     }
 
     @Override
-    public Dataset getDataset(ProcessController processController) {
+    public JSONArray getDataset(ProcessController processController) {
         if (dataset == null) {
             dataset = fetchLatestDataset(processController);
         }
@@ -88,11 +83,10 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
         return dataset;
     }
 
-    private Dataset fetchLatestDataset(ProcessController processController) {
+    private JSONArray fetchLatestDataset(ProcessController processController) {
         List<Bcid> datasetBcids = bcidService.getDatasets(processController.getProjectId(), processController.getExpeditionCode());
-        List<String> columnNames = processController.getMapping().getColumnNamesForWorksheet(processController.getMapping().getDefaultSheetName());
 
-        JSONArray samples = new JSONArray();
+        JSONArray fimsMetadata = new JSONArray();
 
         if (!datasetBcids.isEmpty()) {
             FimsQueryBuilder q = new FimsQueryBuilder(
@@ -100,9 +94,9 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
                     new String[]{datasetBcids.get(0).getGraph()},
                     processController.getOutputFolder());
 
-            samples.addAll(q.getJSON());
+            fimsMetadata.addAll(q.getJSON());
         }
 
-        return new Dataset(columnNames, samples);
+        return fimsMetadata;
     }
 }

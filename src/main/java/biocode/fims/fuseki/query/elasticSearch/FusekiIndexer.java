@@ -5,8 +5,7 @@ import biocode.fims.config.ConfigurationFileFetcher;
 import biocode.fims.digester.Mapping;
 import biocode.fims.entities.Expedition;
 import biocode.fims.entities.Project;
-import biocode.fims.fileManagers.dataset.Dataset;
-import biocode.fims.fileManagers.dataset.DatasetFileManager;
+import biocode.fims.fileManagers.dataset.FimsMetadataFileManager;
 import biocode.fims.query.elasticSearch.ElasticSearchIndexer;
 import biocode.fims.run.ProcessController;
 import biocode.fims.service.ProjectService;
@@ -14,10 +13,10 @@ import biocode.fims.settings.FimsPrinter;
 import biocode.fims.settings.StandardPrinter;
 import org.apache.commons.cli.*;
 import org.elasticsearch.client.Client;
+import org.json.simple.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.File;
 
@@ -27,10 +26,10 @@ import java.io.File;
 public class FusekiIndexer {
     private final Client esClient;
     private final ProjectService projectService;
-    private final DatasetFileManager datasetFileManager;
+    private final FimsMetadataFileManager datasetFileManager;
 
     @Autowired
-    public FusekiIndexer(Client esClient, ProjectService projectService, DatasetFileManager datasetFileManager) {
+    public FusekiIndexer(Client esClient, ProjectService projectService, FimsMetadataFileManager datasetFileManager) {
         this.esClient = esClient;
         this.projectService = projectService;
         this.datasetFileManager = datasetFileManager;
@@ -55,7 +54,7 @@ public class FusekiIndexer {
 
             System.out.println("\nQuerying expedition: " + expedition.getExpeditionCode() + "\n");
 
-            Dataset dataset = datasetFileManager.getDataset();
+            JSONArray dataset = datasetFileManager.getDataset();
 
             System.out.println("\nIndexing results ....\n");
 
@@ -64,7 +63,7 @@ public class FusekiIndexer {
                     project.getProjectId(),
                     expedition.getExpeditionCode(),
                     mapping.getDefaultSheetUniqueKey(),
-                    dataset.getSamples()
+                    dataset
             );
 
         }

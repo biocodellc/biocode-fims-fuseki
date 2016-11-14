@@ -2,7 +2,6 @@ package biocode.fims.fuseki.triplify;
 
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Validation;
-import biocode.fims.fileManagers.dataset.Dataset;
 import biocode.fims.fimsExceptions.FimsRuntimeException;
 import biocode.fims.reader.DatasetTabularDataConverter;
 import biocode.fims.reader.ReaderManager;
@@ -12,13 +11,12 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 import org.apache.commons.cli.*;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
 import biocode.fims.settings.*;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -237,7 +235,7 @@ public class Triplifier {
         rm.loadReaders();
         TabularDataReader tdr = rm.openFile(inputFile, mapping.getDefaultSheetName(), outputDirectory);
 
-        Dataset dataset = new DatasetTabularDataConverter(tdr).convert(
+        JSONArray dataset = new DatasetTabularDataConverter(tdr).convert(
                 mapping.getAllAttributes(mapping.getDefaultSheetName()),
                 mapping.getDefaultSheetName()
         );
@@ -249,7 +247,7 @@ public class Triplifier {
 
         if (isValid) {
             Triplifier t = new Triplifier("test", outputDirectory, processController);
-            JSONObject sample = (JSONObject) dataset.getSamples().get(0);
+            JSONObject sample = (JSONObject) dataset.get(0);
             t.run(validation.getSqliteFile(), new ArrayList<String>(sample.keySet()));
 
             if (stdout) {
