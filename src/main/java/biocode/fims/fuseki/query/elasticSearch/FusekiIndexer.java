@@ -1,80 +1,77 @@
 package biocode.fims.fuseki.query.elasticSearch;
 
-import biocode.fims.entities.Bcid;
+import biocode.fims.application.config.FimsAppConfig;
+import biocode.fims.config.ConfigurationFileFetcher;
+import biocode.fims.digester.Mapping;
 import biocode.fims.entities.Expedition;
 import biocode.fims.entities.Project;
-import biocode.fims.fimsExceptions.ServerErrorException;
-import biocode.fims.fuseki.query.FimsQueryBuilder;
+import biocode.fims.fileManagers.dataset.Dataset;
+import biocode.fims.fileManagers.dataset.DatasetFileManager;
 import biocode.fims.query.elasticSearch.ElasticSearchIndexer;
-import biocode.fims.run.Process;
 import biocode.fims.run.ProcessController;
-import biocode.fims.service.BcidService;
-import biocode.fims.service.ExpeditionService;
 import biocode.fims.service.ProjectService;
 import biocode.fims.settings.FimsPrinter;
 import biocode.fims.settings.StandardPrinter;
 import org.apache.commons.cli.*;
 import org.elasticsearch.client.Client;
-import org.json.simple.JSONArray;
-import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.io.File;
 
 /**
  * class for indexing datasets already loaded into Fuseki
  */
 public class FusekiIndexer {
     private final Client esClient;
-    private final BcidService bcidService;
-    private final ExpeditionService expeditionService;
     private final ProjectService projectService;
+    private final DatasetFileManager datasetFileManager;
 
     @Autowired
-    public FusekiIndexer(Client esClient, BcidService bcidService, ExpeditionService expeditionService,
-                         ProjectService projectService) {
+    public FusekiIndexer(Client esClient, ProjectService projectService, DatasetFileManager datasetFileManager) {
         this.esClient = esClient;
-        this.bcidService = bcidService;
-        this.expeditionService = expeditionService;
         this.projectService = projectService;
+        this.datasetFileManager = datasetFileManager;
     }
 
     public void index(int projectId, String outputDirectory) {
-        JSONArray dataset;
         Project project = projectService.getProjectWithExpeditions(projectId);
 
-        ProcessController pc = new ProcessController(projectId, null);
-        Process p = new Process(outputDirectory, pc, expeditionService);
+        File configFile = new ConfigurationFileFetcher(projectId, outputDirectory, true).getOutputFile();
+
+        Mapping mapping = new Mapping();
+        mapping.addMappingRules(configFile);
 
         // we need to fetch each Expedition individually as the SheetUniqueKey is only unique on the Expedition level
         for (Expedition expedition : project.getExpeditions()) {
-            String[] graph = new String[1];
-            Bcid bcid = bcidService.getLatestDatasetForExpedition(expedition);
-            graph[0] = bcid.getGraph();
 
-            System.out.println("\nQuerying expedition: " + expedition.getExpeditionId() + "\n");
-            // Build the Query
-            FimsQueryBuilder q = new FimsQueryBuilder(p.getMapping(), p.configFile, graph, outputDirectory);
+            ProcessController processController = new ProcessController(projectId, expedition.getExpeditionCode());
+            processController.setOutputFolder(outputDirectory);
+            processController.setMapping(mapping);
+            datasetFileManager.setProcessController(processController);
 
-            try {
-                dataset = (JSONArray) new JSONParser().parse(q.run("esJSON", pc.getProjectId()));
-            } catch (org.json.simple.parser.ParseException e) {
-                throw new ServerErrorException(e);
-            }
+
+            System.out.println("\nQuerying expedition: " + expedition.getExpeditionCode() + "\n");
+
+            Dataset dataset = datasetFileManager.getDataset();
 
             System.out.println("\nIndexing results ....\n");
 
             ElasticSearchIndexer indexer = new ElasticSearchIndexer(esClient);
-            indexer.bulkIndex(
-                    project.getProjectId(), String.valueOf(expedition.getExpeditionId()),
-                    p.getMapping().getDefaultSheetUniqueKey(), dataset
+            indexer.indexDataset(
+                    project.getProjectId(),
+                    expedition.getExpeditionCode(),
+                    mapping.getDefaultSheetUniqueKey(),
+                    dataset.getSamples()
             );
 
         }
     }
 
     public static void main(String[] args) {
-        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("/applicationContext.xml");
+        ApplicationContext applicationContext = new AnnotationConfigApplicationContext(FimsAppConfig.class);
         FusekiIndexer fusekiIndexer = applicationContext.getBean(FusekiIndexer.class);
 
         int projectId = 0;
