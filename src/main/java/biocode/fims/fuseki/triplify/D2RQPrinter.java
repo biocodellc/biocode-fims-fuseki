@@ -176,6 +176,11 @@ public class D2RQPrinter {
             }
         }
 
+        // don't create an attribute if createAnnotationProperty is false (the default is true)
+        if (!attribute.getDisplayAnnotationProperty()) {
+            return;
+        }
+
         if (runColumn) {
             // Define the start of a Property Brdige
             StringBuilder sb = new StringBuilder();
@@ -208,7 +213,7 @@ public class D2RQPrinter {
                 sb2.append(printCondition(table + "." + attribute.getColumn()) + "\n");
                 sb2.append("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";\n");
                 // This version, with translation Table should just be a Label
-                sb2.append("\td2rq:property <rdfs:Label>;\n");
+                sb2.append("\td2rq:property <http://www.w3.org/2000/01/rdf-schema#label>;\n");
                 sb2.append("\t.\n");
                 pw.println(sb2.toString());
             }
