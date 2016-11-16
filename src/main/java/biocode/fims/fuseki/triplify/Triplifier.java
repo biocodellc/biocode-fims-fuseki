@@ -236,7 +236,7 @@ public class Triplifier {
         TabularDataReader tdr = rm.openFile(inputFile, mapping.getDefaultSheetName(), outputDirectory);
 
         JSONArray dataset = new DatasetTabularDataConverter(tdr).convert(
-                mapping.getAllAttributes(mapping.getDefaultSheetName()),
+                mapping.getDefaultSheetAttributes(),
                 mapping.getDefaultSheetName()
         );
 

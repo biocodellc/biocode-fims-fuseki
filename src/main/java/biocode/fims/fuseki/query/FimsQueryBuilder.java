@@ -329,13 +329,10 @@ public class FimsQueryBuilder {
      */
     public FimsModel getFIMSModel(Model model, boolean getOnlySpecifiedProperties) {
 
-        // Set the default sheetname
-        String sheetName = mapping.getDefaultSheetName();
-
         // Create a queryWriter object
         QueryWriter queryWriter = new QueryWriter(
-                mapping.getAllAttributes(sheetName),
-                sheetName);
+                mapping.getDefaultSheetAttributes(),
+                mapping.getDefaultSheetName());
 
         // Construct the FIMS model
         FimsModel fimsModel = new FimsModel(

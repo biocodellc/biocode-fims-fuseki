@@ -55,7 +55,7 @@ public class FimsModel {
         this.queryWriter = queryWriter;
         this.getOnlySpecifiedProperties = getOnlySpecifiedProperties;
 
-        Iterator attributesIt = mapping.getAllAttributes(mapping.getDefaultSheetName()).iterator();
+        Iterator attributesIt = mapping.getDefaultSheetAttributes().iterator();
         configurationFileAttributeURIs = new ArrayList<String>();
         while (attributesIt.hasNext()) {
             Attribute a = (Attribute) attributesIt.next();
