@@ -1,7 +1,7 @@
-package biocode.fims.fuseki.fileManagers.dataset;
+package biocode.fims.fuseki.fileManagers.fimsMetadata;
 
 import biocode.fims.entities.Bcid;
-import biocode.fims.fileManagers.dataset.DatasetPersistenceManager;
+import biocode.fims.fileManagers.fimsMetadata.FimsMetadataPersistenceManager;
 import biocode.fims.fuseki.Uploader;
 import biocode.fims.fuseki.query.FimsQueryBuilder;
 import biocode.fims.fuseki.triplify.Triplifier;
@@ -16,9 +16,9 @@ import java.io.File;
 import java.util.*;
 
 /**
- * {@link DatasetPersistenceManager} for Fuseki tdb
+ * {@link FimsMetadataPersistenceManager} for Fuseki tdb
  */
-public class FusekiDatasetPersistenceManager implements DatasetPersistenceManager {
+public class FusekiFimsMetadataPersistenceManager implements FimsMetadataPersistenceManager {
     private final ExpeditionService expeditionService;
     private final BcidService bcidService;
     private String graph;
@@ -26,7 +26,7 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
     private JSONArray dataset;
 
     @Autowired
-    public FusekiDatasetPersistenceManager(ExpeditionService expeditionService, BcidService bcidService) {
+    public FusekiFimsMetadataPersistenceManager(ExpeditionService expeditionService, BcidService bcidService) {
         this.expeditionService = expeditionService;
         this.bcidService = bcidService;
     }
@@ -46,8 +46,8 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
         );
 
         // the D2Rq mapping file must match the
-        JSONObject sample = (JSONObject) dataset.get(0);
-        triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<String>(sample.keySet()));
+        JSONObject resource = (JSONObject) dataset.get(0);
+        triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<String>(resource.keySet()));
 
         // upload the dataset
         Uploader uploader = new Uploader(processController.getMapping().getMetadata().getTarget(),

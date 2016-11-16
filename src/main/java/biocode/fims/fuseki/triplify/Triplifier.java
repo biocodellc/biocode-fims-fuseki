@@ -3,7 +3,7 @@ package biocode.fims.fuseki.triplify;
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Validation;
 import biocode.fims.fimsExceptions.FimsRuntimeException;
-import biocode.fims.reader.DatasetTabularDataConverter;
+import biocode.fims.reader.JsonTabularDataConverter;
 import biocode.fims.reader.ReaderManager;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
@@ -235,20 +235,20 @@ public class Triplifier {
         rm.loadReaders();
         TabularDataReader tdr = rm.openFile(inputFile, mapping.getDefaultSheetName(), outputDirectory);
 
-        JSONArray dataset = new DatasetTabularDataConverter(tdr).convert(
+        JSONArray fimsMetadata = new JsonTabularDataConverter(tdr).convert(
                 mapping.getDefaultSheetAttributes(),
                 mapping.getDefaultSheetName()
         );
 
-        boolean isValid = validation.run(tdr, "test", outputDirectory, mapping, dataset);
+        boolean isValid = validation.run(tdr, "test", outputDirectory, mapping, fimsMetadata);
 
         // add messages to process controller and print
         processController.addMessages(validation.getMessages());
 
         if (isValid) {
             Triplifier t = new Triplifier("test", outputDirectory, processController);
-            JSONObject sample = (JSONObject) dataset.get(0);
-            t.run(validation.getSqliteFile(), new ArrayList<String>(sample.keySet()));
+            JSONObject resource = (JSONObject) fimsMetadata.get(0);
+            t.run(validation.getSqliteFile(), new ArrayList<String>(resource.keySet()));
 
             if (stdout) {
                 try (BufferedReader br = new BufferedReader(new FileReader(t.getTripleOutputFile()))) {

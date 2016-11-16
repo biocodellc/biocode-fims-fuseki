@@ -5,7 +5,7 @@ import biocode.fims.config.ConfigurationFileFetcher;
 import biocode.fims.digester.Mapping;
 import biocode.fims.entities.Expedition;
 import biocode.fims.entities.Project;
-import biocode.fims.fileManagers.dataset.FimsMetadataFileManager;
+import biocode.fims.fileManagers.fimsMetadata.FimsMetadataFileManager;
 import biocode.fims.query.elasticSearch.ElasticSearchIndexer;
 import biocode.fims.run.ProcessController;
 import biocode.fims.service.ProjectService;
@@ -26,13 +26,13 @@ import java.io.File;
 public class FusekiIndexer {
     private final Client esClient;
     private final ProjectService projectService;
-    private final FimsMetadataFileManager datasetFileManager;
+    private final FimsMetadataFileManager FimsMetadataFileManager;
 
     @Autowired
-    public FusekiIndexer(Client esClient, ProjectService projectService, FimsMetadataFileManager datasetFileManager) {
+    public FusekiIndexer(Client esClient, ProjectService projectService, FimsMetadataFileManager FimsMetadataFileManager) {
         this.esClient = esClient;
         this.projectService = projectService;
-        this.datasetFileManager = datasetFileManager;
+        this.FimsMetadataFileManager = FimsMetadataFileManager;
     }
 
     public void index(int projectId, String outputDirectory) {
@@ -49,12 +49,12 @@ public class FusekiIndexer {
             ProcessController processController = new ProcessController(projectId, expedition.getExpeditionCode());
             processController.setOutputFolder(outputDirectory);
             processController.setMapping(mapping);
-            datasetFileManager.setProcessController(processController);
+            FimsMetadataFileManager.setProcessController(processController);
 
 
             System.out.println("\nQuerying expedition: " + expedition.getExpeditionCode() + "\n");
 
-            JSONArray dataset = datasetFileManager.getDataset();
+            JSONArray fimsMetadata = FimsMetadataFileManager.getDataset();
 
             System.out.println("\nIndexing results ....\n");
 
@@ -63,7 +63,7 @@ public class FusekiIndexer {
                     project.getProjectId(),
                     expedition.getExpeditionCode(),
                     mapping.getDefaultSheetUniqueKey(),
-                    dataset
+                    fimsMetadata
             );
 
         }
