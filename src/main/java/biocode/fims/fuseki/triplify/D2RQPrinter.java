@@ -28,7 +28,10 @@ public class D2RQPrinter {
             printPrefixes(pw);
             printConnectionD2RQ(pw, connection);
             for (Entity entity : mapping.getEntities())
-                printEntityD2RQ(pw, entity, colNames, pValidation);
+                // we only want to persist entities that have a worksheet in the tdb
+                if (entity.hasWorksheet()) {
+                    printEntityD2RQ(pw, entity, colNames, pValidation);
+                }
             for (Relation relation : mapping.getRelations()) {
                 printRelationD2RQ(pw, relation, mapping);
             }
@@ -91,7 +94,7 @@ public class D2RQPrinter {
         Entity subjEntity = mapping.findEntity(relation.getSubject());
         Entity objEntity = mapping.findEntity(relation.getObject());
 
-        if (subjEntity == null || objEntity == null)
+        if (subjEntity == null || !subjEntity.hasWorksheet() || objEntity == null)
             return;
 
         String subjClassMap = getClassMap(subjEntity);
