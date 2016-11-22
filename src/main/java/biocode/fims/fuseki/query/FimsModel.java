@@ -196,7 +196,7 @@ public class FimsModel {
 
         // Write out the BCID String
         if (rowWithValues) {
-            queryWriter.createCell(row, "BCID", BCIDString);
+            queryWriter.createCell(row, "bcid", BCIDString);
         }
 
         stmtIterator.close();

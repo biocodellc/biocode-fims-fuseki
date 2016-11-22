@@ -9,6 +9,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import biocode.fims.run.TemplateProcessor;
 import biocode.fims.settings.PathManager;
 import org.json.simple.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,6 +32,7 @@ import java.util.Iterator;
  * This approach is actually MORE efficient than using just one SPARQL query on multiple graphs.
  */
 public class FimsQueryBuilder {
+    private final static Logger logger = LoggerFactory.getLogger(FimsQueryBuilder.class);
     String graphArray[];
     Mapping mapping;
     String sparqlServer;
@@ -84,7 +87,7 @@ public class FimsQueryBuilder {
                 buildFilterStatements() +
                 "}";
 
-        System.out.println(queryString);
+        logger.debug(queryString);
         QueryExecution qexec = QueryExecutionFactory.create(queryString, model);
         Model outputModel = qexec.execConstruct();
 
@@ -105,7 +108,7 @@ public class FimsQueryBuilder {
                 "   ?s ?p ?o . \n" +
                 "}";
 
-        System.out.println(queryString);
+        logger.debug(queryString);
         QueryExecution qexec = QueryExecutionFactory.sparqlService(sparqlServer, queryString);
         Model model = qexec.execConstruct();
         qexec.close();
@@ -244,7 +247,7 @@ public class FimsQueryBuilder {
         try {
             justData = new XSSFWorkbook(new FileInputStream(outputPath));
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("", e);
         }
 
         TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, justData);
