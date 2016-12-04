@@ -93,9 +93,15 @@ public class Triplifier {
         processController.appendStatus(status + "<br>");
 
         // Write the model
-        model = new ModelD2RQ(FileUtils.toURL(mappingFilepath),
-                FileUtils.langN3, "urn:x-biscicol:");
+
+        String mappingFilePathStringURL = FileUtils.toURL(mappingFilepath);
+        String serializationFormat = FileUtils.langN3;
+        model = new ModelD2RQ(
+                mappingFilePathStringURL,
+               serializationFormat,
+                "urn:x-biscicol:");
         model.setNsPrefix("ark", "http://ezid.cdlib.org/id/ark");
+
         // Write the model as simply a Turtle file
         File tripleFile = PathManager.createUniqueFile(filenamePrefix + ".n3", outputFolder);
         try {

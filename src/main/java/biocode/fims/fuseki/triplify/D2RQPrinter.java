@@ -43,6 +43,7 @@ public class D2RQPrinter {
      * defined_by values, which is useful in RDF mappings.
      *
      * @param columnName
+     *
      * @return
      */
     private static String getTranslationTable(String columnName, Validation validation) {
@@ -145,6 +146,7 @@ public class D2RQPrinter {
      * which strips off all references to BNODE uniquekey
      *
      * @param columnName
+     *
      * @return
      */
     private static String printCondition(String columnName) {
@@ -225,8 +227,8 @@ public class D2RQPrinter {
                 pw.println(sb.toString());
             }
 
-            // Always use isDefinedBy, even if the user has not expressed it explicitly.  We do this by
-            // using the uri value if NO isDefinedBy is expressed.
+            // Express an isDefinedBy additionalproperty if it differs from the URI itself
+            //(!attribute.getDefined_by().equalsIgnoreCase(attribute.getUri()))) {
             pw.println(classMapStringEquivalence + " a d2rq:AdditionalProperty;");
             pw.println("\td2rq:propertyName <" + attribute.getIsDefinedByURIString() + ">;");
             if (attribute.getDefined_by() != null) {
@@ -235,6 +237,7 @@ public class D2RQPrinter {
                 pw.println("\td2rq:propertyValue <" + attribute.getUri() + ">;");
             }
             pw.println("\t.");
+
 
         }
          /*
@@ -365,6 +368,7 @@ public class D2RQPrinter {
      *
      * @param subjEntity
      * @param objEntity
+     *
      * @return
      */
     private static String getPersistentIdentifierMapping(Entity subjEntity, Entity objEntity) {
@@ -404,6 +408,10 @@ public class D2RQPrinter {
         // Any other identifier type besides bNode uses uriPattern to define the actual URI
         // Also, any other identifier type should have a condition associated with it
         else {
+            // Ensure that the ark identifier is prefixed appropriately
+            if (identifier.contains("ark") && !identifier.contains("n2t")) {
+                identifier = "http://n2t.net/" + identifier;
+            }
             String returnValue = "\td2rq:uriPattern \"" + identifier + "@@" + objEntity.getColumn() + "@@\";";
             // ensures non-null values ... don't apply if this is a hash
             // otherwise, print a conditional statement
