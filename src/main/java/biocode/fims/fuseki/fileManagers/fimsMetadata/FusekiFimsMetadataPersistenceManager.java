@@ -84,7 +84,7 @@ public class FusekiFimsMetadataPersistenceManager implements FimsMetadataPersist
     }
 
     private JSONArray fetchLatestDataset(ProcessController processController) {
-        List<Bcid> datasetBcids = bcidService.getDatasets(processController.getProjectId(), processController.getExpeditionCode());
+        List<Bcid> datasetBcids = bcidService.getFimsMetadataDatasets(processController.getProjectId(), processController.getExpeditionCode());
 
         JSONArray fimsMetadata = new JSONArray();
 
