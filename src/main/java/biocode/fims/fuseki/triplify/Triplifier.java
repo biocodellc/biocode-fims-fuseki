@@ -38,6 +38,7 @@ public class Triplifier {
     private String outputLanguage = FileUtils.langNTriple;
 
 
+
     private static Logger logger = LoggerFactory.getLogger(Triplifier.class);
 
     /**
@@ -95,6 +96,7 @@ public class Triplifier {
         // Write the model
 
         String mappingFilePathStringURL = FileUtils.toURL(mappingFilepath);
+        // NOTE: ser ializ
         String serializationFormat = FileUtils.langN3;
         model = new ModelD2RQ(
                 mappingFilePathStringURL,
@@ -106,8 +108,9 @@ public class Triplifier {
         File tripleFile = PathManager.createUniqueFile(filenamePrefix + ".n3", outputFolder);
         try {
             FileOutputStream fos = new FileOutputStream(tripleFile);
+            // NOTE: MUST use langNTriple here so cleaning expressions work
+            model.write(fos, FileUtils.langNTriple, null);
 
-            model.write(fos, getOutputLanguage(), null);
             fos.close();
         } catch (FileNotFoundException e) {
             throw new FimsRuntimeException(500, e);
@@ -116,6 +119,13 @@ public class Triplifier {
         }
         tripleOutputFile = tripleFile.getAbsolutePath();
 
+        try {
+            cleanPropertyExpressions(tripleFile);
+        } catch (IOException e) {
+            throw new FimsRuntimeException("Error trying to clean property expressions", 500);
+        }
+
+        // TODO: re-write output to
         if (tripleFile.length() < 1)
             throw new FimsRuntimeException("No triples to write!", 500);
     }
@@ -147,6 +157,57 @@ public class Triplifier {
         getTriples(mappingFilepath);
     }
 
+    /**
+         * D2RQ assumes all properties to be  rdf:type rdf:Property, even when they
+         * can be more formally declared as owl:ObjectProperty.  The work-around is to re-write the
+         * object of the rdf:type to be owl:ObjectProperty for these cases.
+         * Since we know all relationships expressed in the FIMS configuration file to be expressions
+         * involving object properties, we can simply loop these expressions and use a regular
+         * expression parser to search and replace the appropriate property definition.
+         *
+         * @param inputFile Input file must be in N3 format
+         *
+         * @return true or false on whether this worked or not
+         *
+         * @throws IOException (File not found, encoding exceptions and IO errors)
+         */
+        public boolean cleanPropertyExpressions(File inputFile) throws IOException {
+
+            File tempFile = new File("myTempFile.txt");
+
+            BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+
+            // Look for lines to Remove from file and build Array
+            ArrayList<String> linesToRemove = new ArrayList<String>();
+            for (String line; (line = reader.readLine()) != null; ) {
+
+                if (line.contains("http://www.w3.org/2002/07/owl#ObjectProperty")) {
+                    // replace the ObjectProperty expression with rdf:Property, so we can remove it.
+                    line = line.replace("http://www.w3.org/2002/07/owl#ObjectProperty", "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property");
+                    linesToRemove.add(line);
+                }
+
+            }
+
+            BufferedReader reader2 = new BufferedReader(new FileReader(inputFile));
+            String currentLine;
+
+            while ((currentLine = reader2.readLine()) != null) {
+                // trim newline when comparing with lineToRemove
+                String trimmedLine = currentLine.trim();
+
+                // look for line in output file
+                if (!linesToRemove.contains(trimmedLine)) {
+                    writer.write(currentLine + System.getProperty("line.separator"));
+                }
+
+            }
+            writer.close();
+            reader.close();
+            reader2.close();
+            return tempFile.renameTo(inputFile);
+        }
     /**
      * @param args
      */

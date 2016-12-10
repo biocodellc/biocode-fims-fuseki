@@ -97,7 +97,15 @@ public class D2RQPrinter {
         pw.println("\td2rq:belongsToClassMap " + "map:" + subjClassMap + ";");
         pw.println("\td2rq:property <" + relation.getPredicate() + ">;");
         pw.println(getPersistentIdentifierMapping(subjEntity, objEntity));
+        pw.println("\td2rq:additionalPropertyDefinitionProperty map:" + subjClassMap + "_" + objClassMap + "_rel_aPD");
         pw.println("\t.");
+
+        // For every relation expression, build an additional property to be sure we get an objectProperty expressed
+        pw.println("map:" + subjClassMap + "_" + objClassMap + "_rel_aPD a d2rq:AdditionalProperty;");
+        pw.println("\td2rq:propertyName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>;");
+        pw.println("\td2rq:propertyValue <http://www.w3.org/2002/07/owl#ObjectProperty>;");
+        pw.println("\t.");
+
     }
 
     /**
