@@ -9,6 +9,9 @@ import biocode.fims.reader.ReaderManager;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.RDFReader;
+import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 import org.apache.commons.cli.*;
@@ -22,6 +25,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -36,8 +40,18 @@ public class Triplifier {
     private String filenamePrefix;
     private ProcessController processController;
     private String outputLanguage = FileUtils.langNTriple;
+    public String defaultLocalURIPrefix = "http://biscicol.org/test/";
 
-
+    // Some common prefixes, to be added to the top of the input file of each expressed graph
+    // TODO: set this information in the configuration file, including an IMPORT statement
+    String prefixes =
+            "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n" +
+                    "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" +
+                    "@prefix ark: <http://biscicol.org/id/ark:> .\n" +
+                    "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n" +
+                    "@prefix dwc: <http://rs.tdwg.org/dwc/terms/> . \n"  +
+                    "@prefix dc: <http://purl.org/dc/elements/1.1/> .\n" +
+                    "@prefix obo: <http://purl.obolibrary.org/obo/> .";
 
     private static Logger logger = LoggerFactory.getLogger(Triplifier.class);
 
@@ -61,6 +75,7 @@ public class Triplifier {
 
     /**
      * Set the output language using the FileUtils.* lang constants
+     *
      * @param outputLanguage
      */
     public void setOutputLanguage(String outputLanguage) {
@@ -100,9 +115,8 @@ public class Triplifier {
         String serializationFormat = FileUtils.langN3;
         model = new ModelD2RQ(
                 mappingFilePathStringURL,
-               serializationFormat,
-                "urn:x-biscicol:");
-        model.setNsPrefix("ark", "http://ezid.cdlib.org/id/ark");
+                serializationFormat,
+                defaultLocalURIPrefix);
 
         // Write the model as simply a Turtle file
         File tripleFile = PathManager.createUniqueFile(filenamePrefix + ".n3", outputFolder);
@@ -119,13 +133,26 @@ public class Triplifier {
         }
         tripleOutputFile = tripleFile.getAbsolutePath();
 
+        // cleanup property expressions
         try {
             cleanPropertyExpressions(tripleFile);
         } catch (IOException e) {
             throw new FimsRuntimeException("Error trying to clean property expressions", 500);
         }
 
-        // TODO: re-write output to
+        // add prefixes and imports
+        try {
+            addPrefixesAndImports(tripleFile);
+        } catch (IOException e) {
+            throw new FimsRuntimeException("Error adding prefixes and imports", 500);
+        }
+
+        try {
+            cleanUpModel(tripleFile);
+        } catch (FileNotFoundException e) {
+            throw new FimsRuntimeException("Error in running clean up routines", 500);
+        }
+
         if (tripleFile.length() < 1)
             throw new FimsRuntimeException("No triples to write!", 500);
     }
@@ -141,7 +168,7 @@ public class Triplifier {
         File mapFile = PathManager.createUniqueFile(filenamePrefix + ".mapping.n3", outputFolder);
         Validation validation = processController.getValidation();
         Mapping mapping = processController.getMapping();
-        D2RQPrinter.printD2RQ(colNames, mapping, validation, mapFile, connection);
+        D2RQPrinter.printD2RQ(colNames, mapping, validation, mapFile, connection, defaultLocalURIPrefix);
         return mapFile.getAbsolutePath();
     }
 
@@ -158,56 +185,113 @@ public class Triplifier {
     }
 
     /**
-         * D2RQ assumes all properties to be  rdf:type rdf:Property, even when they
-         * can be more formally declared as owl:ObjectProperty.  The work-around is to re-write the
-         * object of the rdf:type to be owl:ObjectProperty for these cases.
-         * Since we know all relationships expressed in the FIMS configuration file to be expressions
-         * involving object properties, we can simply loop these expressions and use a regular
-         * expression parser to search and replace the appropriate property definition.
-         *
-         * @param inputFile Input file must be in N3 format
-         *
-         * @return true or false on whether this worked or not
-         *
-         * @throws IOException (File not found, encoding exceptions and IO errors)
-         */
-        public boolean cleanPropertyExpressions(File inputFile) throws IOException {
+     * D2RQ assumes all properties to be  rdf:type rdf:Property, even when they
+     * can be more formally declared as owl:ObjectProperty.  The work-around is to re-write the
+     * object of the rdf:type to be owl:ObjectProperty for these cases.
+     * Since we know all relationships expressed in the FIMS configuration file to be expressions
+     * involving object properties, we can simply loop these expressions and use a regular
+     * expression parser to search and replace the appropriate property definition.
+     *
+     * @param inputFile Input file must be in N3 format
+     *
+     * @return true or false on whether this worked or not
+     *
+     * @throws IOException (File not found, encoding exceptions and IO errors)
+     */
+    public boolean cleanPropertyExpressions(File inputFile) throws IOException {
+
+        File tempFile = new File("myTempFile.txt");
+
+        BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+
+        // Look for lines to Remove from file and build Array
+        ArrayList<String> linesToRemove = new ArrayList<String>();
+        for (String line; (line = reader.readLine()) != null; ) {
+
+            if (line.contains("http://www.w3.org/2002/07/owl#ObjectProperty")) {
+                // replace the ObjectProperty expression with rdf:Property, so we can remove it.
+                line = line.replace("http://www.w3.org/2002/07/owl#ObjectProperty", "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property");
+                linesToRemove.add(line);
+            }
+
+        }
+
+        BufferedReader reader2 = new BufferedReader(new FileReader(inputFile));
+        String currentLine;
+
+        while ((currentLine = reader2.readLine()) != null) {
+            // trim newline when comparing with lineToRemove
+            String trimmedLine = currentLine.trim();
+
+            // look for line in output file
+            if (!linesToRemove.contains(trimmedLine)) {
+                writer.write(currentLine + System.getProperty("line.separator"));
+            }
+
+        }
+        writer.close();
+        reader.close();
+        reader2.close();
+        return tempFile.renameTo(inputFile);
+    }
+
+    /**
+     * A general convenience method for adding prefixes and header to output file.
+     * @param inputFile
+     * @return
+     * @throws IOException
+     */
+    public boolean addPrefixesAndImports(File inputFile) throws IOException {
 
             File tempFile = new File("myTempFile.txt");
 
             BufferedReader reader = new BufferedReader(new FileReader(inputFile));
             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
 
-            // Look for lines to Remove from file and build Array
-            ArrayList<String> linesToRemove = new ArrayList<String>();
-            for (String line; (line = reader.readLine()) != null; ) {
+            writer.write(prefixes);
 
-                if (line.contains("http://www.w3.org/2002/07/owl#ObjectProperty")) {
-                    // replace the ObjectProperty expression with rdf:Property, so we can remove it.
-                    line = line.replace("http://www.w3.org/2002/07/owl#ObjectProperty", "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property");
-                    linesToRemove.add(line);
-                }
 
-            }
-
-            BufferedReader reader2 = new BufferedReader(new FileReader(inputFile));
             String currentLine;
 
-            while ((currentLine = reader2.readLine()) != null) {
-                // trim newline when comparing with lineToRemove
-                String trimmedLine = currentLine.trim();
-
-                // look for line in output file
-                if (!linesToRemove.contains(trimmedLine)) {
+            while ((currentLine = reader.readLine()) != null) {
                     writer.write(currentLine + System.getProperty("line.separator"));
-                }
-
             }
             writer.close();
             reader.close();
-            reader2.close();
             return tempFile.renameTo(inputFile);
         }
+
+
+    /**
+     * A convenience method for cleaning up the model by reading in the output file and then
+     * writing it back out.  It is read as N3 and written to Turtle
+     * @param inputFile
+     * @return
+     * @throws FileNotFoundException
+     */
+    private boolean cleanUpModel(File inputFile) throws FileNotFoundException {
+        File tempFile = new File("myTempFile.txt");
+
+        // create an empty model
+        Model model = ModelFactory.createDefaultModel();
+
+        InputStream in = FileManager.get().open(inputFile.getAbsolutePath());
+        if (in == null) {
+            throw new IllegalArgumentException("File: " + inputFile.getAbsolutePath() + " not found");
+        }
+
+        // read the input langN3 file
+        model.read(in, "", FileUtils.langN3);
+
+        // write it to standard out
+        FileOutputStream fos = new FileOutputStream(tempFile);
+
+        // convert to turtle
+        model.write(fos, FileUtils.langTurtle, null);
+
+        return tempFile.renameTo(inputFile);
+    }
     /**
      * @param args
      */

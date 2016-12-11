@@ -18,12 +18,12 @@ import java.util.List;
  * File, which triplifies.
  */
 public class D2RQPrinter {
-
+       private static String defaultLocalURIPrefix;
     /**
      * Generate D2RQ Mapping Language representation of this Mapping's connection, entities and relations.
      */
-    public static void printD2RQ(List<String> colNames, Mapping mapping, Validation pValidation, File d2rqMappingFile, Connection connection) {
-
+    public static void printD2RQ(List<String> colNames, Mapping mapping, Validation pValidation, File d2rqMappingFile, Connection connection, String pdefaultLocalURIPrefix) {
+        defaultLocalURIPrefix = pdefaultLocalURIPrefix;
         try (PrintWriter pw = new PrintWriter(d2rqMappingFile)) {
             printPrefixes(pw);
             printConnectionD2RQ(pw, connection);
@@ -382,10 +382,9 @@ public class D2RQPrinter {
     private static String getPersistentIdentifierMapping(Entity subjEntity, Entity objEntity) {
         String identifier = String.valueOf(objEntity.getIdentifier());
 
-        // apply the scheme urn: and the x-factor sub-scheme biscicol for
-        // all identifiers that we have no information for.
+        // apply the defaultLocalURIPrefix for all identifiers we don't have actual prefixes for
         if (identifier == null || identifier.equals("null")) {
-            identifier = "urn:x-biscicol:" + objEntity.getConceptAlias() + ":";
+            identifier = defaultLocalURIPrefix + "?" + objEntity.getConceptAlias() + "=";
         }
 
         // work with BNODE specification as the persistent identifier mapping
