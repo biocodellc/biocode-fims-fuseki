@@ -8,6 +8,9 @@ import com.hp.hpl.jena.rdf.model.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import biocode.fims.run.TemplateProcessor;
 import biocode.fims.settings.PathManager;
+import org.json.simple.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,24 +20,25 @@ import java.util.Iterator;
 
 /**
  * Class for building queries against FIMS Database
- *
+ * <p>
  * The FIMS Database is a fuseki triplestore composed of many small graphs, grouped by project.
- *
+ * <p>
  * The order of operations for querying the FIMS Database looks like this:
- *
+ * <p>
  * 1. Do a simple (?s ?p ?o) query of all graphs of a specified set and return a Model
  * 2. Query the returned model and run filter statements on it.
  * 3. Loop through specified properties (or not) and call the FimsModel (using Excel data structure)
- *
+ * <p>
  * This approach is actually MORE efficient than using just one SPARQL query on multiple graphs.
  */
 public class FimsQueryBuilder {
+    private final static Logger logger = LoggerFactory.getLogger(FimsQueryBuilder.class);
     String graphArray[];
     Mapping mapping;
     String sparqlServer;
     String outputDirectory;// = System.getProperty("user.dir") + File.separator + "tripleOutput";
 
-     // ArrayList of filter conditions
+    // ArrayList of filter conditions
     private ArrayList<FimsFilterCondition> filterArrayList = new ArrayList<FimsFilterCondition>();
 
     public FimsQueryBuilder(Mapping mapping, String[] graphArray, String outputDirectory) {
@@ -70,24 +74,25 @@ public class FimsQueryBuilder {
 
     /**
      * Query a Model and  pass in Filter conditions and then return another model with those conditions applied
+     *
      * @param model
      * @return
      */
     public Model getFilteredModel(Model model) {
         String queryString = "CONSTRUCT {?s ?p ?o} \n" +
-                        //buildFromStatement() +
-                        "WHERE {\n" +
-                        "   ?s a <http://www.w3.org/2000/01/rdf-schema#Resource> . \n" +
-                        "   ?s ?p ?o . \n" +
-                        buildFilterStatements() +
-                        "}";
+                //buildFromStatement() +
+                "WHERE {\n" +
+                "   ?s a <http://www.w3.org/2000/01/rdf-schema#Resource> . \n" +
+                "   ?s ?p ?o . \n" +
+                buildFilterStatements() +
+                "}";
 
-                System.out.println(queryString);
-                QueryExecution qexec = QueryExecutionFactory.create(queryString, model);
-                Model outputModel = qexec.execConstruct();
+        logger.debug(queryString);
+        QueryExecution qexec = QueryExecutionFactory.create(queryString, model);
+        Model outputModel = qexec.execConstruct();
 
-                qexec.close();
-                return outputModel;
+        qexec.close();
+        return outputModel;
     }
 
     /**
@@ -103,7 +108,7 @@ public class FimsQueryBuilder {
                 "   ?s ?p ?o . \n" +
                 "}";
 
-        System.out.println(queryString);
+        logger.debug(queryString);
         QueryExecution qexec = QueryExecutionFactory.sparqlService(sparqlServer, queryString);
         Model model = qexec.execConstruct();
         qexec.close();
@@ -127,7 +132,7 @@ public class FimsQueryBuilder {
             if (f.uriProperty == null) {
                 if (f.value != null) {
                     sb.append("\t?s ?propertyFilter" + count + " ?objectFilter" + count + " . \n");
-                    sb.append("\tFILTER regex(?objectFilter" + count +",\"" + f.value + "\") . \n");
+                    sb.append("\tFILTER regex(?objectFilter" + count + ",\"" + f.value + "\") . \n");
                 }
             } else {
                 if (f.value != null) {
@@ -192,12 +197,13 @@ public class FimsQueryBuilder {
         return filepath;
     }
 
-    public String writeJSON() {
+    public JSONArray getJSON() {
         FimsModel fimsModel = run();
-        String filepath = fimsModel.writeJSON(PathManager.createUniqueFile("output.json", outputDirectory));
+
+        JSONArray json = fimsModel.getJSON();
 
         fimsModel.close();
-        return filepath;
+        return json;
     }
 
     public String writeKML() {
@@ -241,10 +247,10 @@ public class FimsQueryBuilder {
         try {
             justData = new XSSFWorkbook(new FileInputStream(outputPath));
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("", e);
         }
 
-        TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, false, justData);
+        TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, justData);
         String filepath = t.createExcelFileFromExistingSources("Samples", outputDirectory).getAbsolutePath();
 
         fimsModel.close();
@@ -260,20 +266,19 @@ public class FimsQueryBuilder {
     private FimsModel run() {
         FimsModel fimsModel;
 
-
         /* Set the flag of whether to look at only specified properties (from configuration file)
         when returning data or filtering */
         boolean getOnlySpecifiedProperties = true;
 
         // Construct a FimsModel, wrapping a filtered model around a model only when necessary
         if (filterArrayList.size() > 0) {
-            fimsModel = getFIMSModel(getFilteredModel(getModel()),getOnlySpecifiedProperties);
+            fimsModel = getFIMSModel(getFilteredModel(getModel()), getOnlySpecifiedProperties);
         } else {
-            fimsModel = getFIMSModel(getModel(),getOnlySpecifiedProperties);
+            fimsModel = getFIMSModel(getModel(), getOnlySpecifiedProperties);
         }
 
         return fimsModel;
-    }
+   }
 
     /**
      * Used only for testing this class directly
@@ -282,7 +287,7 @@ public class FimsQueryBuilder {
      */
     public static void main(String[] args) {
         String output_directory = System.getProperty("user.dir") + File.separator + "tripleOutput";
-         int projectId = 1;
+        int projectId = 1;
         ArrayList<FimsFilterCondition> filters = new ArrayList<FimsFilterCondition>();
         //String graphs;
 
@@ -325,15 +330,12 @@ public class FimsQueryBuilder {
     /**
      * Create a FimsModel to store the results from this query
      */
-    private FimsModel getFIMSModel(Model model, boolean getOnlySpecifiedProperties) {
-
-        // Set the default sheetname
-        String sheetName = mapping.getDefaultSheetName();
+    public FimsModel getFIMSModel(Model model, boolean getOnlySpecifiedProperties) {
 
         // Create a queryWriter object
         QueryWriter queryWriter = new QueryWriter(
-                mapping.getAllAttributes(sheetName),
-                sheetName);
+                mapping.getDefaultSheetAttributes(),
+                mapping.getDefaultSheetName());
 
         // Construct the FIMS model
         FimsModel fimsModel = new FimsModel(

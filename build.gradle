@@ -2,8 +2,8 @@ apply plugin: "java"
 apply plugin: "idea"
 apply plugin: "application"
 
-targetCompatibility = 1.7
-sourceCompatibility = 1.7
+targetCompatibility = 1.8
+sourceCompatibility = 1.8
 
 mainClassName = "biocode.fims.fuseki.triplify.Triplifier"
 
@@ -47,7 +47,8 @@ dependencies {
     server 'org.apache.poi:poi:3.10.1'
     server 'org.apache.poi:poi-ooxml:3.10.1'
     server 'com.googlecode.json-simple:json-simple:1.1.1'
-    server group: 'org.springframework', name: 'spring-context', version: '4.2.5.RELEASE'
+    server group: 'org.springframework', name: 'spring-context', version: '4.3.4.RELEASE'
+    server group: 'org.elasticsearch.client', name: 'transport', version: '5.0.0'
 
     server fileTree(dir: 'lib', include: ['*.jar'])
     compile project(":biocode-fims-commons")

@@ -2,9 +2,8 @@ package biocode.fims.fuseki.triplify;
 
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Validation;
-import biocode.fims.fileManagers.dataset.Dataset;
 import biocode.fims.fimsExceptions.FimsRuntimeException;
-import biocode.fims.reader.DatasetTabularDataConverter;
+import biocode.fims.reader.JsonTabularDataConverter;
 import biocode.fims.reader.ReaderManager;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
@@ -15,13 +14,12 @@ import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 import org.apache.commons.cli.*;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
 import biocode.fims.settings.*;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -296,8 +294,6 @@ public class Triplifier {
      * @param args
      */
     public static void main(java.lang.String[] args) throws Exception {
-        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("/applicationContextFuseki.xml");
-
         // Some classes to help us
         CommandLineParser clp = new GnuParser();
         HelpFormatter helpf = new HelpFormatter();
@@ -390,20 +386,20 @@ public class Triplifier {
         rm.loadReaders();
         TabularDataReader tdr = rm.openFile(inputFile, mapping.getDefaultSheetName(), outputDirectory);
 
-        Dataset dataset = new DatasetTabularDataConverter(tdr).convert(
-                mapping.getAllAttributes(mapping.getDefaultSheetName()),
+        JSONArray fimsMetadata = new JsonTabularDataConverter(tdr).convert(
+                mapping.getDefaultSheetAttributes(),
                 mapping.getDefaultSheetName()
         );
 
-        boolean isValid = validation.run(tdr, "test", outputDirectory, mapping, dataset);
+        boolean isValid = validation.run(tdr, "test", outputDirectory, mapping, fimsMetadata);
 
         // add messages to process controller and print
         processController.addMessages(validation.getMessages());
 
         if (isValid) {
             Triplifier t = new Triplifier("test", outputDirectory, processController);
-            JSONObject sample = (JSONObject) dataset.getSamples().get(0);
-            t.run(validation.getSqliteFile(), new ArrayList<String>(sample.keySet()));
+            JSONObject resource = (JSONObject) fimsMetadata.get(0);
+            t.run(validation.getSqliteFile(), new ArrayList<String>(resource.keySet()));
 
             if (stdout) {
                 try (BufferedReader br = new BufferedReader(new FileReader(t.getTripleOutputFile()))) {

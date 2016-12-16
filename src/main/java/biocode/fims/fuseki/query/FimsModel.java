@@ -6,6 +6,8 @@ import biocode.fims.digester.Validation;
 import biocode.fims.query.QueryWriter;
 import com.hp.hpl.jena.rdf.model.*;
 import org.apache.poi.ss.usermodel.Row;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -53,7 +55,7 @@ public class FimsModel {
         this.queryWriter = queryWriter;
         this.getOnlySpecifiedProperties = getOnlySpecifiedProperties;
 
-        Iterator attributesIt = mapping.getAllAttributes(mapping.getDefaultSheetName()).iterator();
+        Iterator attributesIt = mapping.getDefaultSheetAttributes().iterator();
         configurationFileAttributeURIs = new ArrayList<String>();
         while (attributesIt.hasNext()) {
             Attribute a = (Attribute) attributesIt.next();
@@ -194,7 +196,7 @@ public class FimsModel {
 
         // Write out the BCID String
         if (rowWithValues) {
-            queryWriter.createCell(row, "BCID", BCIDString);
+            queryWriter.createCell(row, "bcid", BCIDString);
         }
 
         stmtIterator.close();
@@ -222,9 +224,8 @@ public class FimsModel {
      *
      * @return
      */
-    String writeJSON(File file) {
-        //return stringBuilder.toString();
-        return queryWriter.writeJSON(file);
+    JSONArray getJSON() {
+        return queryWriter.getJSON();
     }
 
     /**
@@ -259,7 +260,7 @@ public class FimsModel {
         return queryWriter.writeTAB(file, true);
     }
 
-    public String writeCSV(File file) {
+    String writeCSV(File file) {
         return queryWriter.writeCSV(file, true);
     }
 }

@@ -1,9 +1,7 @@
-package biocode.fims.fuseki.fileManagers.dataset;
+package biocode.fims.fuseki.fileManagers.fimsMetadata;
 
 import biocode.fims.entities.Bcid;
-import biocode.fims.fileManagers.dataset.Dataset;
-import biocode.fims.fileManagers.dataset.DatasetPersistenceManager;
-import biocode.fims.fimsExceptions.ServerErrorException;
+import biocode.fims.fileManagers.fimsMetadata.FimsMetadataPersistenceManager;
 import biocode.fims.fuseki.Uploader;
 import biocode.fims.fuseki.query.FimsQueryBuilder;
 import biocode.fims.fuseki.triplify.Triplifier;
@@ -12,32 +10,29 @@ import biocode.fims.service.BcidService;
 import biocode.fims.service.ExpeditionService;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 
 /**
- * {@link DatasetPersistenceManager} for Fuseki tdb
+ * {@link FimsMetadataPersistenceManager} for Fuseki tdb
  */
-public class FusekiDatasetPersistenceManager implements DatasetPersistenceManager {
+public class FusekiFimsMetadataPersistenceManager implements FimsMetadataPersistenceManager {
     private final ExpeditionService expeditionService;
     private final BcidService bcidService;
     private String graph;
     private String webAddress;
-    private Dataset dataset;
+    private JSONArray dataset;
 
     @Autowired
-    public FusekiDatasetPersistenceManager(ExpeditionService expeditionService, BcidService bcidService) {
+    public FusekiFimsMetadataPersistenceManager(ExpeditionService expeditionService, BcidService bcidService) {
         this.expeditionService = expeditionService;
         this.bcidService = bcidService;
     }
 
     @Override
-    public void upload(ProcessController processController, Dataset dataset) {
+    public void upload(ProcessController processController, JSONArray dataset) {
         this.dataset = dataset;
         String outputPrefix = processController.getExpeditionCode() + "_output";
 
@@ -51,8 +46,8 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
         );
 
         // the D2Rq mapping file must match the
-        JSONObject sample = (JSONObject) dataset.getSamples().get(0);
-        triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<String>(sample.keySet()));
+        JSONObject resource = (JSONObject) dataset.get(0);
+        triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<String>(resource.keySet()));
 
         // upload the dataset
         Uploader uploader = new Uploader(processController.getMapping().getMetadata().getTarget(),
@@ -80,7 +75,7 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
     }
 
     @Override
-    public Dataset getDataset(ProcessController processController) {
+    public JSONArray getDataset(ProcessController processController) {
         if (dataset == null) {
             dataset = fetchLatestDataset(processController);
         }
@@ -88,25 +83,20 @@ public class FusekiDatasetPersistenceManager implements DatasetPersistenceManage
         return dataset;
     }
 
-    private Dataset fetchLatestDataset(ProcessController processController) {
-        List<Bcid> datasetBcids = bcidService.getDatasets(processController.getProjectId(), processController.getExpeditionCode());
-        List<String> columnNames = processController.getMapping().getColumnNamesForWorksheet(processController.getMapping().getDefaultSheetName());
+    private JSONArray fetchLatestDataset(ProcessController processController) {
+        List<Bcid> datasetBcids = bcidService.getFimsMetadataDatasets(processController.getProjectId(), processController.getExpeditionCode());
 
-        JSONArray samples = new JSONArray();
+        JSONArray fimsMetadata = new JSONArray();
 
         if (!datasetBcids.isEmpty()) {
             FimsQueryBuilder q = new FimsQueryBuilder(
                     processController.getMapping(),
                     new String[]{datasetBcids.get(0).getGraph()},
                     processController.getOutputFolder());
-            try {
-                String tmpFile = q.writeJSON();
-                samples.addAll((JSONArray) new JSONParser().parse(new FileReader(tmpFile)));
-            } catch (IOException | org.json.simple.parser.ParseException e) {
-                throw new ServerErrorException(e);
-            }
+
+            fimsMetadata.addAll(q.getJSON());
         }
 
-        return new Dataset(columnNames, samples);
+        return fimsMetadata;
     }
 }

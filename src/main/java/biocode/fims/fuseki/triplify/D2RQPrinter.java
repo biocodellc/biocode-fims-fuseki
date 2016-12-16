@@ -28,7 +28,10 @@ public class D2RQPrinter {
             printPrefixes(pw);
             printConnectionD2RQ(pw, connection);
             for (Entity entity : mapping.getEntities())
-                printEntityD2RQ(pw, entity, colNames, pValidation);
+                // we only want to persist entities that have a worksheet in the tdb
+                if (entity.hasWorksheet()) {
+                    printEntityD2RQ(pw, entity, colNames, pValidation);
+                }
             for (Relation relation : mapping.getRelations()) {
                 printRelationD2RQ(pw, relation, mapping);
             }
@@ -87,7 +90,7 @@ public class D2RQPrinter {
         Entity subjEntity = mapping.findEntity(relation.getSubject());
         Entity objEntity = mapping.findEntity(relation.getObject());
 
-        if (subjEntity == null || objEntity == null)
+        if (subjEntity == null || !subjEntity.hasWorksheet() || objEntity == null)
             return;
 
         String subjClassMap = getClassMap(subjEntity);
@@ -114,7 +117,7 @@ public class D2RQPrinter {
      * @return D2RQ Mapping ClassMap name.
      */
     private static String getClassMap(Entity entity) {
-        return entity.getWorksheet() + "_" + entity.getWorksheetUniqueKey() + "_" + entity.getConceptAlias();
+        return entity.getWorksheet() + "_" + entity.getUniqueKey() + "_" + entity.getConceptAlias();
     }
 
     /**
@@ -388,7 +391,7 @@ public class D2RQPrinter {
         }
 
         // work with BNODE specification as the persistent identifier mapping
-        if (objEntity.getWorksheetUniqueKey().contains("BNODE")) {
+        if (objEntity.getUniqueKey().contains("BNODE")) {
             // If there is a subject Entity then we want to specify this is the relationship type
             // This is the case when constructing property bridges so we say that this is
             // referring to a particular classmap
