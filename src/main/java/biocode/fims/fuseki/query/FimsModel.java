@@ -247,10 +247,6 @@ public class FimsModel {
         return queryWriter.writeKML(file);
     }
 
-    String writeCSPACE(File file, Validation validation) {
-        return queryWriter.writeCSPACE(file, validation);
-    }
-
     public void close() {
         model.close();
     }

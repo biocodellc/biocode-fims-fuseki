@@ -214,14 +214,6 @@ public class FimsQueryBuilder {
         return filepath;
     }
 
-    public String writeCSPACE(Validation validation) {
-        FimsModel fimsModel = run();
-        String filepath = fimsModel.writeCSPACE(PathManager.createUniqueFile("output.cspace.xml", outputDirectory), validation);
-
-        fimsModel.close();
-        return filepath;
-    }
-
     public String writeTAB() {
         FimsModel fimsModel = run();
         String filepath = fimsModel.writeTAB(PathManager.createUniqueFile("output.tsv", outputDirectory));
