@@ -1,6 +1,7 @@
 package biocode.fims.fuseki.fileManagers.fimsMetadata;
 
 import biocode.fims.entities.Bcid;
+import biocode.fims.fileManagers.fimsMetadata.AbstractFimsMetadataPersistenceManager;
 import biocode.fims.fileManagers.fimsMetadata.FimsMetadataPersistenceManager;
 import biocode.fims.fuseki.Uploader;
 import biocode.fims.fuseki.query.FimsQueryBuilder;
@@ -8,6 +9,7 @@ import biocode.fims.fuseki.triplify.Triplifier;
 import biocode.fims.run.ProcessController;
 import biocode.fims.service.BcidService;
 import biocode.fims.service.ExpeditionService;
+import biocode.fims.settings.SettingsManager;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ import java.util.*;
 /**
  * {@link FimsMetadataPersistenceManager} for Fuseki tdb
  */
-public class FusekiFimsMetadataPersistenceManager implements FimsMetadataPersistenceManager {
+public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPersistenceManager implements FimsMetadataPersistenceManager {
     private final ExpeditionService expeditionService;
     private final BcidService bcidService;
     private String graph;
@@ -26,7 +28,9 @@ public class FusekiFimsMetadataPersistenceManager implements FimsMetadataPersist
     private JSONArray dataset;
 
     @Autowired
-    public FusekiFimsMetadataPersistenceManager(ExpeditionService expeditionService, BcidService bcidService) {
+    public FusekiFimsMetadataPersistenceManager(ExpeditionService expeditionService, BcidService bcidService,
+                                                SettingsManager settingsManager) {
+        super(settingsManager);
         this.expeditionService = expeditionService;
         this.bcidService = bcidService;
     }
@@ -47,7 +51,7 @@ public class FusekiFimsMetadataPersistenceManager implements FimsMetadataPersist
 
         // the D2Rq mapping file must match the
         JSONObject resource = (JSONObject) dataset.get(0);
-        triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<String>(resource.keySet()));
+        triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<>(resource.keySet()));
 
         // upload the dataset
         Uploader uploader = new Uploader(processController.getMapping().getMetadata().getTarget(),
