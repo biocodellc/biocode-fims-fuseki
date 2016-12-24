@@ -19,6 +19,7 @@ import org.apache.commons.cli.*;
 import org.elasticsearch.client.Client;
 import org.json.simple.JSONArray;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.io.File;
@@ -32,12 +33,17 @@ public class FusekiIndexer {
     private final ProjectService projectService;
     private ExpeditionService expeditionService;
     private BcidService bcidService;
+    private MessageSource messageSource;
+    private SettingsManager settingsManager;
 
-    public FusekiIndexer(Client esClient, ProjectService projectService, ExpeditionService expeditionService, BcidService bcidService) {
+    public FusekiIndexer(Client esClient, ProjectService projectService, ExpeditionService expeditionService,
+                         BcidService bcidService, MessageSource messageSource, SettingsManager settingsManager) {
         this.esClient = esClient;
         this.projectService = projectService;
         this.expeditionService = expeditionService;
         this.bcidService = bcidService;
+        this.messageSource = messageSource;
+        this.settingsManager = settingsManager;
     }
 
     public void index(int projectId, String outputDirectory) {
@@ -51,9 +57,9 @@ public class FusekiIndexer {
         // we need to fetch each Expedition individually as the SheetUniqueKey is only unique on the Expedition level
         for (Expedition expedition : project.getExpeditions()) {
 
-            FusekiFimsMetadataPersistenceManager persistenceManager = new FusekiFimsMetadataPersistenceManager(expeditionService, bcidService);
+            FusekiFimsMetadataPersistenceManager persistenceManager = new FusekiFimsMetadataPersistenceManager(expeditionService, bcidService, settingsManager);
             FimsMetadataFileManager fimsMetadataFileManager = new FimsMetadataFileManager(
-                    persistenceManager, SettingsManager.getInstance(), expeditionService, bcidService);
+                    persistenceManager, SettingsManager.getInstance(), expeditionService, bcidService, messageSource);
 
             ProcessController processController = new ProcessController(projectId, expedition.getExpeditionCode());
             processController.setOutputFolder(outputDirectory);
@@ -83,6 +89,8 @@ public class FusekiIndexer {
         ProjectService projectService = applicationContext.getBean(ProjectService.class);
         ExpeditionService expeditionService = applicationContext.getBean(ExpeditionService.class);
         BcidService bcidService = applicationContext.getBean(BcidService.class);
+        SettingsManager settingsManager = applicationContext.getBean(SettingsManager.class);
+        MessageSource messageSource = applicationContext.getBean(MessageSource.class);
 
         int projectId = 0;
         boolean allProjects = false;
@@ -125,7 +133,7 @@ public class FusekiIndexer {
             output_directory = cl.getOptionValue("o");
         }
 
-        FusekiIndexer fusekiIndexer = new FusekiIndexer(esClient, projectService, expeditionService, bcidService);
+        FusekiIndexer fusekiIndexer = new FusekiIndexer(esClient, projectService, expeditionService, bcidService, messageSource, settingsManager);
 
         if (allProjects) {
             List<Project> projectList = projectService.getProjects();

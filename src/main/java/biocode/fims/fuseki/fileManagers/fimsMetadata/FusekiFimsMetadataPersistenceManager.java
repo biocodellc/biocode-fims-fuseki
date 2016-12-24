@@ -36,7 +36,7 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
     }
 
     @Override
-    public void upload(ProcessController processController, JSONArray dataset) {
+    public void upload(ProcessController processController, JSONArray dataset, String filename) {
         this.dataset = dataset;
         String outputPrefix = processController.getExpeditionCode() + "_output";
 
