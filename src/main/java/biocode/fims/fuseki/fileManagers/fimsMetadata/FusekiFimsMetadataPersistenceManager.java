@@ -103,4 +103,9 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
 
         return fimsMetadata;
     }
+
+    @Override
+    public void deleteDataset(ProcessController processController) {
+        // currently we don't want to delete anything from fuseki as we store every dataset version
+    }
 }
