@@ -3,6 +3,7 @@ package biocode.fims.fuseki.query;
 import biocode.fims.digester.Mapping;
 import biocode.fims.digester.Validation;
 import biocode.fims.query.QueryWriter;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.rdf.model.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -197,10 +198,10 @@ public class FimsQueryBuilder {
         return filepath;
     }
 
-    public JSONArray getJSON() {
+    public ArrayNode getJSON() {
         FimsModel fimsModel = run();
 
-        JSONArray json = fimsModel.getJSON();
+        ArrayNode json = fimsModel.getJSON();
 
         fimsModel.close();
         return json;

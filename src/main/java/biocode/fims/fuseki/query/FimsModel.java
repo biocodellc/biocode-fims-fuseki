@@ -2,12 +2,10 @@ package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Attribute;
 import biocode.fims.digester.Mapping;
-import biocode.fims.digester.Validation;
 import biocode.fims.query.QueryWriter;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hp.hpl.jena.rdf.model.*;
 import org.apache.poi.ss.usermodel.Row;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -224,7 +222,7 @@ public class FimsModel {
      *
      * @return
      */
-    JSONArray getJSON() {
+    ArrayNode getJSON() {
         return queryWriter.getJSON();
     }
 

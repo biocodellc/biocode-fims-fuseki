@@ -15,6 +15,7 @@ import biocode.fims.service.ProjectService;
 import biocode.fims.settings.FimsPrinter;
 import biocode.fims.settings.SettingsManager;
 import biocode.fims.settings.StandardPrinter;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.commons.cli.*;
 import org.elasticsearch.client.Client;
 import org.json.simple.JSONArray;
@@ -69,7 +70,7 @@ public class FusekiIndexer {
 
             System.out.println("\nQuerying expedition: " + expedition.getExpeditionCode() + "\n");
 
-            JSONArray fimsMetadata = fimsMetadataFileManager.index();
+            ArrayNode fimsMetadata = fimsMetadataFileManager.index();
 
             System.out.println("\nIndexing results ....\n");
 

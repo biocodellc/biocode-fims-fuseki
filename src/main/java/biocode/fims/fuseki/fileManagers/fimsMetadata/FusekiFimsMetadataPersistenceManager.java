@@ -6,12 +6,13 @@ import biocode.fims.fileManagers.fimsMetadata.FimsMetadataPersistenceManager;
 import biocode.fims.fuseki.Uploader;
 import biocode.fims.fuseki.query.FimsQueryBuilder;
 import biocode.fims.fuseki.triplify.Triplifier;
+import biocode.fims.rest.SpringObjectMapper;
 import biocode.fims.run.ProcessController;
 import biocode.fims.service.BcidService;
 import biocode.fims.service.ExpeditionService;
 import biocode.fims.settings.SettingsManager;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
@@ -25,7 +26,7 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
     private final BcidService bcidService;
     private String graph;
     private String webAddress;
-    private JSONArray dataset;
+    private ArrayNode dataset;
 
     @Autowired
     public FusekiFimsMetadataPersistenceManager(ExpeditionService expeditionService, BcidService bcidService,
@@ -36,7 +37,7 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
     }
 
     @Override
-    public void upload(ProcessController processController, JSONArray dataset, String filename) {
+    public void upload(ProcessController processController, ArrayNode dataset, String filename) {
         this.dataset = dataset;
         String outputPrefix = processController.getExpeditionCode() + "_output";
 
@@ -50,8 +51,7 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
         );
 
         // the D2Rq mapping file must match the
-        JSONObject resource = (JSONObject) dataset.get(0);
-        triplifier.run(processController.getValidation().getSqliteFile(), new ArrayList<>(resource.keySet()));
+        triplifier.run(processController.getValidation().getSqliteFile(), Lists.newArrayList(dataset.get(0).fieldNames()));
 
         // upload the dataset
         Uploader uploader = new Uploader(processController.getMapping().getMetadata().getTarget(),
@@ -79,7 +79,7 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
     }
 
     @Override
-    public JSONArray getDataset(ProcessController processController) {
+    public ArrayNode getDataset(ProcessController processController) {
         if (dataset == null) {
             dataset = fetchLatestDataset(processController);
         }
@@ -87,10 +87,10 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
         return dataset;
     }
 
-    private JSONArray fetchLatestDataset(ProcessController processController) {
+    private ArrayNode fetchLatestDataset(ProcessController processController) {
         List<Bcid> datasetBcids = bcidService.getFimsMetadataDatasets(processController.getProjectId(), processController.getExpeditionCode());
 
-        JSONArray fimsMetadata = new JSONArray();
+        ArrayNode fimsMetadata = new SpringObjectMapper().createArrayNode();
 
         if (!datasetBcids.isEmpty()) {
             FimsQueryBuilder q = new FimsQueryBuilder(

@@ -7,15 +7,15 @@ import biocode.fims.reader.JsonTabularDataConverter;
 import biocode.fims.reader.ReaderManager;
 import biocode.fims.run.ProcessController;
 import biocode.fims.settings.Connection;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.RDFReader;
 import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 import org.apache.commons.cli.*;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import biocode.fims.reader.plugins.TabularDataReader;
@@ -23,7 +23,6 @@ import biocode.fims.settings.*;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -386,7 +385,7 @@ public class Triplifier {
         rm.loadReaders();
         TabularDataReader tdr = rm.openFile(inputFile, mapping.getDefaultSheetName(), outputDirectory);
 
-        JSONArray fimsMetadata = new JsonTabularDataConverter(tdr).convert(
+        ArrayNode fimsMetadata = new JsonTabularDataConverter(tdr).convert(
                 mapping.getDefaultSheetAttributes(),
                 mapping.getDefaultSheetName()
         );
@@ -398,8 +397,8 @@ public class Triplifier {
 
         if (isValid) {
             Triplifier t = new Triplifier("test", outputDirectory, processController);
-            JSONObject resource = (JSONObject) fimsMetadata.get(0);
-            t.run(validation.getSqliteFile(), new ArrayList<String>(resource.keySet()));
+            ObjectNode resource = (ObjectNode) fimsMetadata.get(0);
+            t.run(validation.getSqliteFile(), Lists.newArrayList(resource.fieldNames()));
 
             if (stdout) {
                 try (BufferedReader br = new BufferedReader(new FileReader(t.getTripleOutputFile()))) {
