@@ -223,8 +223,8 @@ public class FimsQueryBuilder {
         return filepath;
     }
 
-    public String writeCSV() {
-        FimsModel fimsModel = run();
+    public String writeCSV(boolean getOnlySpecifiedProperties) {
+        FimsModel fimsModel = run(getOnlySpecifiedProperties);
         String filepath = fimsModel.writeCSV(PathManager.createUniqueFile("output.csv", outputDirectory));
 
         fimsModel.close();
@@ -250,18 +250,19 @@ public class FimsQueryBuilder {
         return filepath;
     }
 
+    private FimsModel run() {
+        /* Set the flag of whether to look at only specified properties (from configuration file)
+        when returning data or filtering */
+        return run(true);
+    }
     /**
      * builds the Model from all the information we have collected by specifying the SPARQL query
      * service endpoint and filter conditions.  It builds a "FimsModel" from which we can re-direct to the specified
      * formats.
      * @return
      */
-    private FimsModel run() {
+    private FimsModel run(boolean getOnlySpecifiedProperties) {
         FimsModel fimsModel;
-
-        /* Set the flag of whether to look at only specified properties (from configuration file)
-        when returning data or filtering */
-        boolean getOnlySpecifiedProperties = true;
 
         // Construct a FimsModel, wrapping a filtered model around a model only when necessary
         if (filterArrayList.size() > 0) {
