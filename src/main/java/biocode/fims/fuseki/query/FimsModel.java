@@ -17,7 +17,7 @@ import java.util.Iterator;
  * This is an extremely useful way of working with data and converting to other structures, but it DOES place a
  * theoretical limit on the number of distinct records in a particular project.  Enabling much larger projects
  * by using indexes and some kind of document storage engine is on our list of things to make happen.
- *
+ * <p>
  * The model is refined somewhat by ONLY the currently definated attributes in the XML configuration file that
  * is defined.  That is, anything previously defined and then NOT defined will not be displayed here.
  * Understanding this is CRUCIALLY important and stated elsewhere in the documentation that one should never toss,
@@ -42,10 +42,9 @@ public class FimsModel {
     boolean getOnlySpecifiedProperties;
 
     /**
-     *
      * @param model
      * @param queryWriter
-     * @param getOnlySpecifiedProperties  whether or not to fetch a constrained list of specified properties
+     * @param getOnlySpecifiedProperties whether or not to fetch a constrained list of specified properties
      */
     FimsModel(Model model, QueryWriter queryWriter, Mapping mapping,
               boolean getOnlySpecifiedProperties) {
@@ -66,7 +65,6 @@ public class FimsModel {
      * Get the label for this row
      *
      * @param subject
-     *
      * @return
      */
     public String getRowLabel(Resource subject) {
@@ -77,7 +75,6 @@ public class FimsModel {
      * Iterate through statements with "resource" as object.  This is ALL
      *
      * @param resource
-     *
      * @return
      */
     void readRows(String resource) {
@@ -145,7 +142,6 @@ public class FimsModel {
      * get a property named by a particular string (in URI format)
      *
      * @param propertyAsString
-     *
      * @return
      */
     private Property getProperty(String propertyAsString) {
@@ -181,7 +177,7 @@ public class FimsModel {
 
                     String predicate = s.getPredicate().toString();
 
-                    if (getOnlySpecifiedProperties &&
+                    if (!getOnlySpecifiedProperties ||
                             configurationFileAttributeURIs.contains(predicate)) {
                         queryWriter.createCell(row, s.getPredicate().toString(), s.getObject().toString());
                         rowWithValues = true;
@@ -205,7 +201,6 @@ public class FimsModel {
      * Get all relations for a particular subject resource
      *
      * @param subject
-     *
      * @return
      */
     private StmtIterator getRelations(Resource subject) {
