@@ -9,6 +9,9 @@ mainClassName = "biocode.fims.fuseki.triplify.Triplifier"
 
 repositories {
     mavenCentral()
+    maven {
+        url "http://code.berkeleybop.org/maven/repository/"
+    }
 }
 
 // this is necessary for the subprojects.each closure to work correctly when dealing with the server configuration dependencies
@@ -49,6 +52,11 @@ dependencies {
     server 'com.googlecode.json-simple:json-simple:1.1.1'
     server group: 'org.springframework', name: 'spring-context', version: '4.3.4.RELEASE'
     server group: 'org.elasticsearch.client', name: 'transport', version: '5.0.0'
+//    server group: 'org.bbop', name: 'OWLTools-Oort', version: '0.2.1'
+//    server group: 'org.semarglproject', name: 'semargl-core', version: '0.7'
+    server group: 'com.google.guava', name: 'guava', version: '21.0'
+
+    server group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.8.4'
 
     server fileTree(dir: 'lib', include: ['*.jar'])
     compile project(":biocode-fims-commons")

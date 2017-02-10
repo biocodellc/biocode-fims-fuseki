@@ -2,18 +2,13 @@ package biocode.fims.fuseki.triplify;
 
 import biocode.fims.fimsExceptions.FimsRuntimeException;
 import biocode.fims.settings.PathManager;
-import com.hp.hpl.jena.graph.Node;
-import com.hp.hpl.jena.ontology.OntResource;
 import com.hp.hpl.jena.rdf.model.*;
 import com.hp.hpl.jena.util.FileUtils;
 import de.fuberlin.wiwiss.d2rq.jena.ModelD2RQ;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Iterator;
 
-import com.hp.hpl.jena.vocabulary.RDFS;
-import org.semarglproject.vocab.RDF;
 
 
 /**
