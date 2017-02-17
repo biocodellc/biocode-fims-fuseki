@@ -419,9 +419,9 @@ public class D2RQPrinter {
         // Also, any other identifier type should have a condition associated with it
         else {
             // Ensure that the ark identifier is prefixed appropriately
-            if (identifier.contains("ark") && !identifier.contains("n2t")) {
-                identifier = "http://n2t.net/" + identifier;
-            }
+            //if (identifier.contains("ark") && !identifier.contains("n2t")) {
+            //    identifier = "http://n2t.net/" + identifier;
+            //}
             String returnValue = "\td2rq:uriPattern \"" + identifier + "@@" + objEntity.getColumn() + "@@\";";
             // ensures non-null values ... don't apply if this is a hash
             // otherwise, print a conditional statement
