@@ -18,7 +18,8 @@ import java.util.List;
  * File, which triplifies.
  */
 public class D2RQPrinter {
-       private static String defaultLocalURIPrefix;
+    private static String defaultLocalURIPrefix;
+
     /**
      * Generate D2RQ Mapping Language representation of this Mapping's connection, entities and relations.
      */
@@ -189,13 +190,10 @@ public class D2RQPrinter {
             }
         }
 
-        // don't create an attribute if createAnnotationProperty is false (the default is true)
-        if (!attribute.getDisplayAnnotationProperty()) {
-            return;
-        }
+
 
         if (runColumn) {
-            // Define the start of a Property Brdige
+            // Define the start of a Property Bridge
             StringBuilder sb = new StringBuilder();
             String classMapString = "map:" + classMap + "_" + attribute.getColumn();
             sb.append(classMapString + " a d2rq:PropertyBridge;\n");
@@ -220,20 +218,36 @@ public class D2RQPrinter {
                 pw.println(translationTable);
 
                 // Now print another Property Bridge to define outputs for rdfs:Label
-                StringBuilder sb2 = new StringBuilder();
-                sb2.append("map:" + classMap + "_" + attribute.getColumn() + "Label a d2rq:PropertyBridge;\n");
-                sb2.append("\td2rq:belongsToClassMap " + "map:" + classMap + ";\n");
-                sb2.append(printCondition(table + "." + attribute.getColumn()) + "\n");
-                sb2.append("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";\n");
-                // This version, with translation Table should just be a Label
-                sb2.append("\td2rq:property <http://www.w3.org/2000/01/rdf-schema#label>;\n");
-                sb2.append("\t.\n");
-                pw.println(sb2.toString());
+                // if the user specified to not display this then we don't want the label
+                if (attribute.getDisplayAnnotationProperty() != false) {
+                    StringBuilder sb2 = new StringBuilder();
+                    sb2.append("map:" + classMap + "_" + attribute.getColumn() + "Label a d2rq:PropertyBridge;\n");
+                    sb2.append("\td2rq:belongsToClassMap " + "map:" + classMap + ";\n");
+                    sb2.append(printCondition(table + "." + attribute.getColumn()) + "\n");
+                    sb2.append("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";\n");
+                    // Set xsd datatype if it is available
+                    if (attribute.getDatatype().toString() != null && !attribute.getDatatype().toString().equals("")) {
+                        sb2.append("\td2rq:datatype xsd:" + attribute.getDatatype().toString().toLowerCase() + ";\n");
+                    }
+                    // This version, with translation Table should just be a Label
+                    sb2.append("\td2rq:property <http://www.w3.org/2000/01/rdf-schema#label>;\n");
+                    sb2.append("\t.\n");
+                    pw.println(sb2.toString());
+                }
             }
             // If no translation table is found, just declare the property bridge
             else {
+                 // if this is not a translationTable and annotationproperty is false we can exit
+                 // don't create an attribute if createAnnotationProperty is false (the default is true)
+                if (!attribute.getDisplayAnnotationProperty()) {
+                    return;
+                }
                 sb.append("\td2rq:property <" + attribute.getUri() + ">;\n");
                 sb.append("\td2rq:column \"" + table + "." + attribute.getColumn() + "\";\n");
+                // Set xsd datatype if it is available
+                if (attribute.getDatatype().toString() != null && !attribute.getDatatype().toString().equals("")) {
+                    sb.append("\td2rq:datatype xsd:" + attribute.getDatatype().toString().toLowerCase() + ";\n");
+                }
                 sb.append("\t.\n");
                 pw.println(sb.toString());
             }
