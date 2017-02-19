@@ -47,7 +47,6 @@ public class D2RQPrinter {
      * defined_by values, which is useful in RDF mappings.
      *
      * @param columnName
-     *
      * @return
      */
     private static String getTranslationTable(String columnName, Validation validation) {
@@ -158,7 +157,6 @@ public class D2RQPrinter {
      * which strips off all references to BNODE uniquekey
      *
      * @param columnName
-     *
      * @return
      */
     private static String printCondition(String columnName) {
@@ -265,90 +263,6 @@ public class D2RQPrinter {
 
 
         }
-         /*
-           Loop multi-value columns
-           This is used when the Configuration file indicates an attribute that should be composed of more than one column
-            */
-        else if (attribute.getColumn().contains(",")) {
-
-            // TODO: clean this up and integrate with above code.
-            String tempColumnName = attribute.getColumn().replace(",", "");
-
-            String[] columns = attribute.getColumn().split(",");
-
-            // Check if we should run this -- all columns need to be present in colNames list
-            Boolean runMultiValueColumn = true;
-            for (int i = 0; i < columns.length; i++) {
-                if (!colNames.contains(columns[i])) {
-                    runMultiValueColumn = false;
-                }
-            }
-
-            // Only run this portion if the tempColumnName appears
-            if (runMultiValueColumn) {
-
-                String classMapString = "map:" + classMap + "_" + tempColumnName;
-                pw.println(classMapString + " a d2rq:PropertyBridge;");
-                pw.println("\td2rq:belongsToClassMap " + "map:" + classMap + ";");
-                pw.println("\td2rq:property <" + attribute.getUri() + ">;");
-
-                // Construct SQL Expression
-                StringBuilder result = new StringBuilder();
-
-                // Call this a sqlExpression
-                result.append("\td2rq:sqlExpression \"");
-
-                // Append ALL columns together using the delimiter... ALL are required
-                if (attribute.getType().equals("all")) {
-                    for (int i = 0; i < columns.length; i++) {
-                        if (i != 0)
-                            result.append(" || '" + attribute.getDelimited_by() + "' || ");
-                        // Set required function parameters
-                        if (attribute.getType().equals("all"))
-                            pw.println(printCondition(table + "." + columns[i]));
-                        //pw.println("\td2rq:condition \"" + table + "." + columns[i] + " <> ''\";");
-                        result.append(columns[i]);
-                    }
-                    result.append("\";");
-                }
-
-                // This is the YMD case using a very special SQLIte function to format data
-                // Assume that columns are Year, Month, and Day EXACTLY
-                else if (attribute.getType().equals("ymd")) {
-                    // Require Year
-                    pw.println(printCondition(table + "." + columns[0]));
-                    //pw.println("\td2rq:condition \"" + table + "." + columns[0] + " <> ''\";");
-
-                    result.append("yearCollected ||  ifnull(nullif('-'||substr('0'||monthCollected,-2,2),'-0') || " +
-                            "ifnull(nullif('-'||substr('0'||dayCollected,-2,2),'-0'),'')" +
-                            ",'') ");
-                    result.append("\";");
-
-                }
-
-                pw.println(result.toString());
-
-                //pw.println("\td2rq:column \"" + table + "." + column + "\";");
-                //pw.println("\td2rq:condition \"" + table + "." + column + " <> ''\";");
-
-                // Specify an equivalence, which is isDefinedBy
-                classMapStringEquivalence = classMapString + "_Equivalence";
-                pw.println("\td2rq:additionalPropertyDefinitionProperty " + classMapStringEquivalence + ";");
-                pw.println("\t.");
-
-                // Always use isDefinedBy, even if the user has not expressed it explicitly.  We do this by
-                // using the uri value if NO isDefinedBy is expressed.
-                pw.println(classMapStringEquivalence + " a d2rq:AdditionalProperty;");
-                pw.println("\td2rq:propertyName <" + attribute.getIsDefinedByURIString() + ">;");
-                if (attribute.getDefined_by() != null) {
-                    pw.println("\td2rq:propertyValue <" + attribute.getDefined_by() + ">;");
-                } else {
-                    pw.println("\td2rq:propertyValue <" + attribute.getUri() + ">;");
-                }
-                pw.println("\t.");
-
-            }
-        }
     }
 
 
@@ -393,7 +307,6 @@ public class D2RQPrinter {
      *
      * @param subjEntity
      * @param objEntity
-     *
      * @return
      */
     private static String getPersistentIdentifierMapping(Entity subjEntity, Entity objEntity) {
