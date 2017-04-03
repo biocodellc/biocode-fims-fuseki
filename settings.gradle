@@ -1,5 +1,10 @@
 rootProject.name = 'biocode-fims-fuseki'
 
-include ":biocode-fims-commons"
+if (hasProperty("gradleFimsDir") && file(gradleFimsDir).exists()) {
+    includeBuild gradleFimsDir
+}
 
-project(":biocode-fims-commons").projectDir = file(biocodeFimsCommonsDir)
+if (hasProperty("biocodeFimsCommonsDir")) {
+    include ":biocode-fims-commons"
+    project(":biocode-fims-commons").projectDir = file(biocodeFimsCommonsDir)
+}

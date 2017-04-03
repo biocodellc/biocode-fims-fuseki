@@ -1,50 +1,47 @@
-apply plugin: "java"
-apply plugin: "idea"
+buildscript {
+    repositories {
+        maven {
+            url "http://repo.biocodellc.com/repository/maven-private/"
+            credentials {
+                username mavenUser
+                password mavenPass
+            }
+        }
+        mavenLocal()
+    }
+    dependencies {
+        classpath "org.biocode:gradle-fims:1.1.1"
+    }
+}
+
 apply plugin: "application"
+apply plugin: "org.biocode.fims-app"
 
-targetCompatibility = 1.8
-sourceCompatibility = 1.8
+ext.fimsCommonsVersion = "0.1.1"
 
-mainClassName = "biocode.fims.fuseki.triplify.Triplifier"
+fims {
+    maven {
+        username mavenUser
+        password mavenPass
+    }
+}
 
 repositories {
-    mavenCentral()
-    maven {
-        url "http://code.berkeleybop.org/maven/repository/"
-    }
+    add(fims.mavenFims())
+    mavenLocal()
 }
 
-// this is necessary for the subprojects.each closure to work correctly when dealing with the server configuration dependencies
-subprojects.each { subproject -> evaluationDependsOn(subproject.path) }
-
-//noinspection GroovyAssignabilityCheck
-configurations {
-    server
-}
-
-idea {
-    module {
-        scopes.COMPILE.plus += [configurations.server]
-    }
-}
-
-//noinspection GroovyAssignabilityCheck
-sourceSets {
-    main {
-        compileClasspath += [configurations.server]
-    }
-    test {
-        compileClasspath += [configurations.server]
-        runtimeClasspath += [configurations.server]
-    }
-}
+// need to evaluate childProjects first so we can add the childProject server dependencies to the server configuration
+evaluationDependsOnChildren()
 
 dependencies {
     server 'org.apache.jena:jena-core:2.7.1'
     server 'org.apache.jena:jena-arq:2.9.1'
     server 'org.apache.jena:jena-tdb:0.9.1'
 
-    server 'org.apache.commons:commons-digester3:3.2'
+    server('org.apache.commons:commons-digester3:3.2') {
+        exclude module: 'asm'
+    }
     server 'commons-cli:commons-cli:1.2'
     server 'commons-lang:commons-lang:2.6'
     server 'org.apache.poi:poi:3.10.1'
@@ -52,35 +49,44 @@ dependencies {
     server 'com.googlecode.json-simple:json-simple:1.1.1'
     server group: 'org.springframework', name: 'spring-context', version: '4.3.4.RELEASE'
     server group: 'org.elasticsearch.client', name: 'transport', version: '5.0.0'
-//    server group: 'org.bbop', name: 'OWLTools-Oort', version: '0.2.1'
-//    server group: 'org.semarglproject', name: 'semargl-core', version: '0.7'
     server group: 'com.google.guava', name: 'guava', version: '21.0'
+    server group: 'commons-collections', name: 'commons-collections', version: '3.2.2'
 
     server group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.8.4'
 
     server fileTree(dir: 'lib', include: ['*.jar'])
-    compile project(":biocode-fims-commons")
+    compile composite.resolveDependency("org.biocode:biocode-fims-commons:${fimsCommonsVersion}", "biocode-fims-commons")
 
     testCompile "junit:junit-dep:4.10"
+
+    subprojects.each {
+        project.configurations.server.dependencies.addAll(it.configurations.server.dependencies)
+    }
 }
 
-libsDirName = "../dist"
+//=============================
+//= application configuration
+//=============================
+mainClassName = "biocode.fims.fuseki.triplify.Triplifier"
 
-//noinspection GroovyAssignabilityCheck
-clean {
-    delete libsDir
+distributions {
+    main {
+        contents {
+            into('lib') {
+                from configurations.server
+            }
+        }
+    }
+}
+
+startScripts {
+    classpath = files(jar.archivePath, configurations.server, configurations.runtime)
 }
 
 run {
-    subprojects.each { subproject ->
-        project.configurations.server.dependencies.addAll(subproject.configurations.server.dependencies)
-    }
+    classpath = configurations.server + sourceSets.main.runtimeClasspath
 
-    classpath = configurations.server + configurations.compile + sourceSets.main.runtimeClasspath
-
-    if ( project.hasProperty("appArgs") ) {
-
+    if (project.hasProperty("appArgs")) {
         args Eval.me(appArgs)
-
     }
 }
