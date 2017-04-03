@@ -47,6 +47,7 @@ public class D2RQPrinter {
      * defined_by values, which is useful in RDF mappings.
      *
      * @param columnName
+     *
      * @return
      */
     private static String getTranslationTable(String columnName, Validation validation) {
@@ -100,14 +101,17 @@ public class D2RQPrinter {
         pw.println("\td2rq:belongsToClassMap " + "map:" + subjClassMap + ";");
         pw.println("\td2rq:property <" + relation.getPredicate() + ">;");
         pw.println(getPersistentIdentifierMapping(subjEntity, objEntity));
-        pw.println("\td2rq:additionalPropertyDefinitionProperty map:" + subjClassMap + "_" + objClassMap + "_rel_aPD");
+        //pw.println("\td2rq:additionalPropertyDefinitionProperty map:" + subjClassMap + "_" + objClassMap + "_rel_aPD");
+        // Every relation expression should have an owl:ObjectProperty expressed
+        pw.println("\td2rq:additionalPropertyDefinitionProperty map:owlobjectproperty;\n");
+
         pw.println("\t.");
 
         // For every relation expression, build an additional property to be sure we get an objectProperty expressed
-        pw.println("map:" + subjClassMap + "_" + objClassMap + "_rel_aPD a d2rq:AdditionalProperty;");
-        pw.println("\td2rq:propertyName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>;");
-        pw.println("\td2rq:propertyValue <http://www.w3.org/2002/07/owl#ObjectProperty>;");
-        pw.println("\t.");
+        //pw.println("map:" + subjClassMap + "_" + objClassMap + "_rel_aPD a d2rq:AdditionalProperty;");
+        //pw.println("\td2rq:propertyName <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>;");
+        //pw.println("\td2rq:propertyValue <http://www.w3.org/2002/07/owl#ObjectProperty>;");
+        //pw.println("\t.");
 
     }
 
@@ -157,6 +161,7 @@ public class D2RQPrinter {
      * which strips off all references to BNODE uniquekey
      *
      * @param columnName
+     *
      * @return
      */
     private static String printCondition(String columnName) {
@@ -189,7 +194,6 @@ public class D2RQPrinter {
         }
 
 
-
         if (runColumn) {
             // Define the start of a Property Bridge
             StringBuilder sb = new StringBuilder();
@@ -200,6 +204,10 @@ public class D2RQPrinter {
             // Specify an equivalence, which is isDefinedBy
             classMapStringEquivalence = classMapString + "_Equivalence";
             sb.append("\td2rq:additionalPropertyDefinitionProperty " + classMapStringEquivalence + ";\n");
+
+            // NOTE: all attribute columns should be datatype properties.  Adding this so these
+            // are specified appropriately
+            sb.append("\td2rq:additionalPropertyDefinitionProperty map:owldatatypeproperty;\n");
 
             // Get a translation.  If it is not null then process it
             String translationTable = getTranslationTable(attribute.getColumn(), validation);
@@ -228,15 +236,15 @@ public class D2RQPrinter {
                         sb2.append("\td2rq:datatype xsd:" + attribute.getDatatype().toString().toLowerCase() + ";\n");
                     }
                     // This version, with translation Table should just be a Label
-                    sb2.append("\td2rq:property <http://www.w3.org/2000/01/rdf-schema#label>;\n");
+                    sb2.append("\td2rq:property <http://www.w3.org/2000/01/rdf-schema#comment>;\n");
                     sb2.append("\t.\n");
                     pw.println(sb2.toString());
                 }
             }
             // If no translation table is found, just declare the property bridge
             else {
-                 // if this is not a translationTable and annotationproperty is false we can exit
-                 // don't create an attribute if createAnnotationProperty is false (the default is true)
+                // if this is not a translationTable and annotationproperty is false we can exit
+                // don't create an attribute if createAnnotationProperty is false (the default is true)
                 if (!attribute.getDisplayAnnotationProperty()) {
                     return;
                 }
@@ -299,6 +307,18 @@ public class D2RQPrinter {
         pw.println("@prefix ark: <http://biscicol.org/id/ark:> .");
 
 
+        // Putting DatatypeProperty and ObjectProperty mappings with the prefixes at the top
+        // of the mapping file since they are used only once
+        pw.println("map:owldatatypeproperty a d2rq:AdditionalProperty;\n");
+        pw.println("\td2rq:propertyName rdf:type;\n");
+        pw.println("\td2rq:propertyValue <http://www.w3.org/2002/07/owl#DatatypeProperty>;\n");
+        pw.println(".\n\n");
+
+        pw.println("map:owlobjectproperty a d2rq:AdditionalProperty;\n");
+        pw.println("\td2rq:propertyName rdf:type;\n");
+        pw.println("\td2rq:propertyValue <http://www.w3.org/2002/07/owl#ObjectProperty>;\n");
+        pw.println(".\n\n");
+
         pw.println();
     }
 
@@ -307,6 +327,7 @@ public class D2RQPrinter {
      *
      * @param subjEntity
      * @param objEntity
+     *
      * @return
      */
     private static String getPersistentIdentifierMapping(Entity subjEntity, Entity objEntity) {
