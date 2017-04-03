@@ -37,7 +37,7 @@ public class Triplifier {
     private String filenamePrefix;
     private ProcessController processController;
     private String outputLanguage = FileUtils.langNTriple;
-    public String defaultLocalURIPrefix = "http://biscicol.org/test/";
+    public String defaultLocalURIPrefix;
     private boolean overWriteOutputFile = false;
 
     // Some common prefixes, to be added to the top of the input file of each expressed graph
@@ -49,6 +49,7 @@ public class Triplifier {
                     "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n" +
                     "@prefix dwc: <http://rs.tdwg.org/dwc/terms/> . \n" +
                     "@prefix dc: <http://purl.org/dc/elements/1.1/> .\n" +
+                    "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" +
                     "@prefix obo: <http://purl.obolibrary.org/obo/> .";
 
     private static Logger logger = LoggerFactory.getLogger(Triplifier.class);
@@ -60,16 +61,18 @@ public class Triplifier {
      * @param outputFolder
      */
     public Triplifier(String filenamePrefix, String outputFolder,
-                      ProcessController processController, boolean overWriteOutputFile) {
+                      ProcessController processController, boolean overWriteOutputFile, String defaultLocalURIPrefix) {
         this.outputFolder = outputFolder;
         this.filenamePrefix = filenamePrefix;
         this.processController = processController;
         this.overWriteOutputFile = overWriteOutputFile;
+        this.defaultLocalURIPrefix = defaultLocalURIPrefix;
+
     }
 
     public Triplifier(String filenamePrefix, String outputFolder,
                       ProcessController processController) {
-        this(filenamePrefix, outputFolder, processController, false);
+        this(filenamePrefix, outputFolder, processController, false, "http://biscicol.org/test/");
     }
 
     public String getOutputLanguage() {
