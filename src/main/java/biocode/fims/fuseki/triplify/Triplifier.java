@@ -411,7 +411,7 @@ public class Triplifier {
                 mapping.getDefaultSheetName()
         );
 
-        boolean isValid = validation.run(tdr, "test", outputDirectory, mapping, fimsMetadata);
+        boolean isValid = validation.run(tdr, "test", outputDirectory, mapping, fimsMetadata, mapping.getDefaultSheetName());
 
         // add messages to process controller and print
         processController.addMessages(validation.getMessages());
