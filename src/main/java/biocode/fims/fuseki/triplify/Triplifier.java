@@ -38,6 +38,7 @@ public class Triplifier {
     private ProcessController processController;
     private String outputLanguage = FileUtils.langNTriple;
     public String defaultLocalURIPrefix = "http://biscicol.org/test/";
+    private boolean overWriteOutputFile = false;
 
     // Some common prefixes, to be added to the top of the input file of each expressed graph
     // TODO: set this information in the configuration file, including an IMPORT statement
@@ -46,7 +47,7 @@ public class Triplifier {
                     "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" +
                     "@prefix ark: <http://biscicol.org/id/ark:> .\n" +
                     "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n" +
-                    "@prefix dwc: <http://rs.tdwg.org/dwc/terms/> . \n"  +
+                    "@prefix dwc: <http://rs.tdwg.org/dwc/terms/> . \n" +
                     "@prefix dc: <http://purl.org/dc/elements/1.1/> .\n" +
                     "@prefix obo: <http://purl.obolibrary.org/obo/> .";
 
@@ -59,11 +60,16 @@ public class Triplifier {
      * @param outputFolder
      */
     public Triplifier(String filenamePrefix, String outputFolder,
-                      ProcessController processController) {
+                      ProcessController processController, boolean overWriteOutputFile) {
         this.outputFolder = outputFolder;
         this.filenamePrefix = filenamePrefix;
         this.processController = processController;
+        this.overWriteOutputFile = overWriteOutputFile;
+    }
 
+    public Triplifier(String filenamePrefix, String outputFolder,
+                      ProcessController processController) {
+        this(filenamePrefix, outputFolder, processController, false);
     }
 
     public String getOutputLanguage() {
@@ -116,7 +122,11 @@ public class Triplifier {
                 defaultLocalURIPrefix);
 
         // Write the model as simply a Turtle file
-        File tripleFile = PathManager.createUniqueFile(filenamePrefix + ".n3", outputFolder);
+        File tripleFile = null;
+        if (!overWriteOutputFile)
+            tripleFile = PathManager.createUniqueFile(filenamePrefix + ".n3", outputFolder);
+        else
+            tripleFile = new File(outputFolder + filenamePrefix + ".n3");
         try {
             FileOutputStream fos = new FileOutputStream(tripleFile);
             // NOTE: MUST use langNTriple here so cleaning expressions work
@@ -161,8 +171,12 @@ public class Triplifier {
      */
     private String getMapping(Connection connection, List<String> colNames) {
         connection.verifyFile();
+        File mapFile = null;
+        if (!overWriteOutputFile)
+            mapFile = PathManager.createUniqueFile(filenamePrefix + ".mapping.n3", outputFolder);
+        else
+            mapFile = new File(outputFolder + filenamePrefix + ".mapping.n3");
 
-        File mapFile = PathManager.createUniqueFile(filenamePrefix + ".mapping.n3", outputFolder);
         Validation validation = processController.getValidation();
         Mapping mapping = processController.getMapping();
         D2RQPrinter.printD2RQ(colNames, mapping, validation, mapFile, connection, defaultLocalURIPrefix);
@@ -235,36 +249,42 @@ public class Triplifier {
 
     /**
      * A general convenience method for adding prefixes and header to output file.
+     *
      * @param inputFile
+     *
      * @return
+     *
      * @throws IOException
      */
     public boolean addPrefixesAndImports(File inputFile) throws IOException {
 
-            File tempFile = new File("myTempFile.txt");
+        File tempFile = new File("myTempFile.txt");
 
-            BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+        BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
 
-            writer.write(prefixes);
+        writer.write(prefixes);
 
 
-            String currentLine;
+        String currentLine;
 
-            while ((currentLine = reader.readLine()) != null) {
-                    writer.write(currentLine + System.getProperty("line.separator"));
-            }
-            writer.close();
-            reader.close();
-            return tempFile.renameTo(inputFile);
+        while ((currentLine = reader.readLine()) != null) {
+            writer.write(currentLine + System.getProperty("line.separator"));
         }
+        writer.close();
+        reader.close();
+        return tempFile.renameTo(inputFile);
+    }
 
 
     /**
      * A convenience method for cleaning up the model by reading in the output file and then
      * writing it back out.  It is read as N3 and written to Turtle
+     *
      * @param inputFile
+     *
      * @return
+     *
      * @throws FileNotFoundException
      */
     private boolean cleanUpModel(File inputFile) throws FileNotFoundException {
@@ -289,6 +309,7 @@ public class Triplifier {
 
         return tempFile.renameTo(inputFile);
     }
+
     /**
      * @param args
      */
