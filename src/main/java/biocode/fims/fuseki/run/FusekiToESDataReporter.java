@@ -31,7 +31,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.data.domain.Page;
 
 import java.io.*;
 import java.util.*;
@@ -168,9 +167,8 @@ public class FusekiToESDataReporter {
                         );
                 ElasticSearchQuery query = new ElasticSearchQuery(boolQuery, new String[]{String.valueOf(projectId)}, new String[]{ElasticSearchIndexer.TYPE});
                 ElasticSearchQuerier querier = new ElasticSearchQuerier(esClient, query);
-                Page<ObjectNode> pageableResults = querier.getPageableResults();
 
-                int numberOfEsResources = (int) pageableResults.getTotalElements();
+                int numberOfEsResources = querier.getAllResults().size();
                 int numberOfFusekiResources = dataset.size();
 
                 DatasetStats datasetStats = new DatasetStats(expedition.getExpeditionCode(), numberOfFusekiResources, numberOfEsResources);
