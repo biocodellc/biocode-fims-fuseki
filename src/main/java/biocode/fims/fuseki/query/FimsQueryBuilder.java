@@ -1,15 +1,13 @@
 package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Mapping;
-import biocode.fims.digester.Validation;
-import biocode.fims.query.QueryWriter;
+import biocode.fims.query.writers.QueryWriter;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.rdf.model.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import biocode.fims.run.TemplateProcessor;
 import biocode.fims.settings.PathManager;
-import org.json.simple.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

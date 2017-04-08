@@ -2,16 +2,21 @@ package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Attribute;
 import biocode.fims.digester.Mapping;
-import biocode.fims.query.QueryWriter;
+import biocode.fims.query.writers.QueryWriter;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hp.hpl.jena.rdf.model.*;
+import com.hp.hpl.jena.rdf.model.impl.StmtIteratorImpl;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
+ * TODO: look at PPO-Fims PPOFimsModel class if we want to use this class. That was a refactoring of this class, removing recursion problems
+ * TODO: and removing the QueryWriter due to performance issues
  * Model representing FIMS object.   The data structure we start with in FimsModel is a Jena/ARQ Model and
  * the structure we end up with is an Apache POI sheet, useful for building other types of return statements.
  * This is an extremely useful way of working with data and converting to other structures, but it DOES place a

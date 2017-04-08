@@ -10,14 +10,14 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath "org.biocode:gradle-fims:1.1.1"
+        classpath "org.biocode:gradle-fims:1.1.2"
     }
 }
 
 apply plugin: "application"
 apply plugin: "org.biocode.fims-app"
 
-ext.fimsCommonsVersion = "0.1.1"
+ext.fimsCommonsVersion = "0.2.0"
 
 fims {
     maven {
