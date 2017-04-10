@@ -10,7 +10,7 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath "org.biocode:gradle-fims:1.1.2"
+        classpath "org.biocode:gradle-fims:1.1.5"
     }
 }
 
@@ -61,6 +61,7 @@ dependencies {
 
     subprojects.each {
         project.configurations.server.dependencies.addAll(it.configurations.server.dependencies)
+        project.configurations.serverRuntime.dependencies.addAll(it.configurations.serverRuntime.dependencies)
     }
 }
 
