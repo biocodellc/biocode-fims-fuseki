@@ -303,6 +303,7 @@ public class D2RQPrinter {
         pw.println("@prefix ro: <http://www.obofoundry.org/ro/ro.owl#> .");
         pw.println("@prefix bsc: <http://biscicol.org/terms/index.html#> .");
         pw.println("@prefix urn: <http://biscicol.org/terms/index.html#> .");
+
         // TODO: update this prefix to EZID location when suffixPassthrough is ready
         pw.println("@prefix ark: <http://biscicol.org/id/ark:> .");
 

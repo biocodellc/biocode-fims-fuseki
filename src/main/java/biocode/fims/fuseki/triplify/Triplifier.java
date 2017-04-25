@@ -415,7 +415,6 @@ public class Triplifier {
         options.addOption("I", "imports", true, "Specify a file to import an ontology into file.");
         options.addOption("F", "format", true, "output format of the triplification process: N3, N-TRIPLE, TURTLE, RDF/XML --TURTLE is default.");
         options.addOption("prefix", true, "Set the default local URI prefix.");
-        options.addOption("sparql", true, "designate a sparql input file for processing.  This option should have an inputFile and outputDirectory specified.  The output format is always CSV");
 
         // Create the commands parser and parse the command line arguments.
         try {
@@ -472,19 +471,6 @@ public class Triplifier {
             configFile = cl.getOptionValue("configFile");
         }
 
-        // if the sparql option is specified then we are going to go ahead and just run the query and return
-        // results.  No configuration file is necessary
-        if (cl.hasOption("sparql")) {
-
-            String outputFile = outputDirectory + filename + ".csv";
-            try {
-                runQuery(inputFile, outputFile, cl.getOptionValue("sparql"));
-            } catch (Exception e) {
-                System.err.println(e.getMessage());
-            }
-            System.out.println("    writing " + outputFile);
-            return;
-        }
 
         if (configFile.isEmpty() || outputDirectory.isEmpty() || inputFile.isEmpty()) {
             FimsPrinter.out.println("Incorrect options");
@@ -567,44 +553,5 @@ public class Triplifier {
         }
     }
 
-    /*
-    Simple method to run a query without involving entailments of the FIMSQueryBuilder
-     */
-    private static void runQuery(String inputFile, String outputFile, String sparqlFile) throws Exception {
-        // Create an input Stream to read input File
-        InputStream in = new FileInputStream(new File(inputFile));
 
-        // Create a file output stream to store file output
-        File file = new File(outputFile);
-        FileOutputStream fop = new FileOutputStream(file);
-
-        // Read sparqlFile into String
-        InputStream is = new FileInputStream(sparqlFile);
-        BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-        String line = buf.readLine();
-        StringBuilder sb = new StringBuilder();
-        while (line != null) {
-            sb.append(line).append("\n");
-            line = buf.readLine();
-        }
-        is.close();
-        String queryString = sb.toString();
-
-        // Create model
-        Model model = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF, null);
-        model.read(in, null);
-        in.close();
-
-        // Run query
-        Query query = QueryFactory.create(queryString);
-        QueryExecution qe = QueryExecutionFactory.create(query, model);
-        ResultSet results = qe.execSelect();
-        ResultSetFormatter.outputAsCSV(fop, results);
-        //ResultSetFormatter.out(System.out, results);
-
-        // Close up
-        fop.close();
-        qe.close();
-
-    }
 }
