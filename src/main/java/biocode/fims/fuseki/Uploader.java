@@ -5,7 +5,8 @@ import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.query.ReadWrite;
 import com.hp.hpl.jena.tdb.TDBFactory;
 import com.hp.hpl.jena.update.*;
-import org.openjena.atlas.lib.StrUtils;
+
+import org.apache.jena.atlas.lib.StrUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
