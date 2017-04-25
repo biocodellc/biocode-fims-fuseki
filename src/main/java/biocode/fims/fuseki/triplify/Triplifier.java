@@ -10,6 +10,8 @@ import biocode.fims.settings.Connection;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
+import com.hp.hpl.jena.ontology.OntModelSpec;
+import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
@@ -36,12 +38,15 @@ public class Triplifier {
     private String tripleOutputFile;
     private String filenamePrefix;
     private ProcessController processController;
-    private String outputLanguage = FileUtils.langNTriple;
-    public String defaultLocalURIPrefix;
+    private static String outputLanguage = FileUtils.langTurtle;
+    private static String outputFormatExtension = "ttl";
+
+    public static String defaultLocalURIPrefix = "test:";
     private boolean overWriteOutputFile = false;
+    static String outputFormat = "TURTLE";
+
 
     // Some common prefixes, to be added to the top of the input file of each expressed graph
-    // TODO: set this information in the configuration file, including an IMPORT statement
     String prefixes =
             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n" +
                     "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" +
@@ -50,7 +55,9 @@ public class Triplifier {
                     "@prefix dwc: <http://rs.tdwg.org/dwc/terms/> . \n" +
                     "@prefix dc: <http://purl.org/dc/elements/1.1/> .\n" +
                     "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" +
-                    "@prefix obo: <http://purl.obolibrary.org/obo/> .";
+                    "@prefix obo: <http://purl.obolibrary.org/obo/> .\n";
+
+    String imports = "";
 
     private static Logger logger = LoggerFactory.getLogger(Triplifier.class);
 
@@ -60,19 +67,61 @@ public class Triplifier {
      * @param filenamePrefix
      * @param outputFolder
      */
-    public Triplifier(String filenamePrefix, String outputFolder,
-                      ProcessController processController, boolean overWriteOutputFile, String defaultLocalURIPrefix) {
+    public Triplifier(String filenamePrefix,
+                      String outputFolder,
+                      ProcessController processController,
+                      boolean overWriteOutputFile,
+                      String defaultLocalURIPrefix,
+                      String outputLanguage
+    ) {
         this.outputFolder = outputFolder;
         this.filenamePrefix = filenamePrefix;
         this.processController = processController;
         this.overWriteOutputFile = overWriteOutputFile;
         this.defaultLocalURIPrefix = defaultLocalURIPrefix;
 
+        if (outputLanguage == null) {
+            outputLanguage = this.outputLanguage;
+        }
+        // Set language and extensions
+        if (outputLanguage.equals("N3")) {
+            this.outputLanguage = outputLanguage;
+            outputFormatExtension = "n3";
+        } else if (outputLanguage.equals("N-TRIPLE")) {
+            this.outputLanguage = outputLanguage;
+            outputFormatExtension = "nt";
+        } else if (outputLanguage.equals("RDF/XML")) {
+            this.outputLanguage = outputLanguage;
+            outputFormatExtension = "xml";
+        } else if (outputLanguage.equals("TURTLE")) {
+            this.outputLanguage = outputLanguage;
+            outputFormatExtension = "ttl";
+        } else {
+            outputFormatExtension = "ttl";
+        }
+
     }
 
-    public Triplifier(String filenamePrefix, String outputFolder,
+    public Triplifier(String filenamePrefix,
+                      String outputFolder,
                       ProcessController processController) {
-        this(filenamePrefix, outputFolder, processController, false, "http://biscicol.org/test/");
+        this(filenamePrefix, outputFolder, processController, false, "http://biscicol.org/test/", null);
+    }
+
+    public String getPrefixes() {
+        return prefixes;
+    }
+
+    public void setPrefixes(String prefixes) {
+        this.prefixes = prefixes;
+    }
+
+    public String getImports() {
+        return imports;
+    }
+
+    public void setImports(String imports) {
+        this.imports = imports;
     }
 
     public String getOutputLanguage() {
@@ -129,7 +178,7 @@ public class Triplifier {
         if (!overWriteOutputFile)
             tripleFile = PathManager.createUniqueFile(filenamePrefix + ".n3", outputFolder);
         else
-            tripleFile = new File(outputFolder + filenamePrefix + ".n3");
+            tripleFile = new File(outputFolder + File.separator + filenamePrefix + ".n3");
         try {
             FileOutputStream fos = new FileOutputStream(tripleFile);
             // NOTE: MUST use langNTriple here so cleaning expressions work
@@ -141,7 +190,6 @@ public class Triplifier {
         } catch (IOException e) {
             logger.warn("IOException thrown trying to close FileOutputStream object.", e);
         }
-        tripleOutputFile = tripleFile.getAbsolutePath();
 
         // cleanup property expressions
         try {
@@ -163,7 +211,7 @@ public class Triplifier {
             throw new FimsRuntimeException("Error in running clean up routines", 500);
         }
 
-        if (tripleFile.length() < 1)
+        if (new File(tripleOutputFile).length() < 1)
             throw new FimsRuntimeException("No triples to write!", 500);
     }
 
@@ -268,6 +316,7 @@ public class Triplifier {
 
         writer.write(prefixes);
 
+        writer.write(imports);
 
         String currentLine;
 
@@ -307,10 +356,28 @@ public class Triplifier {
         // write it to standard out
         FileOutputStream fos = new FileOutputStream(tempFile);
 
-        // convert to turtle
-        model.write(fos, FileUtils.langTurtle, null);
+        // convert to the default outputLanguage
+        model.write(fos, outputLanguage, null);
 
-        return tempFile.renameTo(inputFile);
+        // Write the output file using the proper prefix
+        String filePath = inputFile.getAbsolutePath().
+                substring(0, inputFile.getAbsolutePath().lastIndexOf(File.separator));
+
+        // Strip the trailing extension from this filename (no longer csv, xls, or txt)
+        //String outputFilename = filenamePrefix;
+        //if (filenamePrefix.indexOf(".") > 0)
+        //    outputFilename = filenamePrefix.substring(0, filenamePrefix.lastIndexOf("."));
+
+        File outputFile = new File(filePath + File.separator + filenamePrefix + "." + outputFormatExtension);
+        tripleOutputFile = outputFile.getAbsolutePath();
+
+        // Delete the inputFile if we don't need it anymore
+        if (inputFile != outputFile) {
+            inputFile.delete();
+        }
+
+        // Rename the tempFile to outputFile name we just specified
+        return tempFile.renameTo(outputFile);
     }
 
     /**
@@ -324,10 +391,18 @@ public class Triplifier {
 
         // The input file
         String inputFile = "";
+        String filename = "";
+
         String outputDirectory = "";
         String configFile = "";
+        String imports = "";
         boolean runDeepRoots = false;
         boolean stdout = true;
+        ArrayList<String> outputFormats = new ArrayList<String>();
+        outputFormats.add("N3");
+        outputFormats.add("N-TRIPLE");
+        outputFormats.add("RDF/XML");
+        outputFormats.add("TURTLE");
 
         // Define our commandline options
         Options options = new Options();
@@ -336,7 +411,11 @@ public class Triplifier {
         options.addOption("i", "inputFile", true, "Input Spreadsheet");
         options.addOption("c", "configFile", true, "Use a local config file instead of getting from server");
 //        options.addOption("deepRoots", true, "run deepRoots while triplifying");
-        options.addOption("w", "writeFile", true, "Don't use stdout, instead print to file and return location");
+        options.addOption("w", "writeFile", false, "Don't use stdout, instead print to file and return location. Uses the filename from the inputFile and the outputDirectory.");
+        options.addOption("I", "imports", true, "Specify a file to import an ontology into file.");
+        options.addOption("F", "format", true, "output format of the triplification process: N3, N-TRIPLE, TURTLE, RDF/XML --TURTLE is default.");
+        options.addOption("prefix", true, "Set the default local URI prefix.");
+        options.addOption("sparql", true, "designate a sparql input file for processing.  This option should have an inputFile and outputDirectory specified.  The output format is always CSV");
 
         // Create the commands parser and parse the command line arguments.
         try {
@@ -365,31 +444,52 @@ public class Triplifier {
         if (cl.hasOption("o")) {
             outputDirectory = cl.getOptionValue("o");
         }
-//
-//        if (cl.hasOption("deepRoots")) {
-//            try {
-//                runDeepRoots = Boolean.valueOf(cl.getOptionValue("deepRoots"));
-//            } catch (Exception e) {
-//                FimsPrinter.out.println("Bad option for deepRoots");
-//                helpf.printHelp("fims ", options, true);
-//                return;
-//            }
-//        }
-
+        if (cl.hasOption("prefix")) {
+            defaultLocalURIPrefix = cl.getOptionValue("prefix");
+        }
         if (cl.hasOption("w")) {
-            stdout = true;
+            stdout = false;
         }
 
         if (cl.hasOption("i")) {
             inputFile = cl.getOptionValue("i");
+            File inputFileFile = new File(inputFile);
+            filename = inputFileFile.getName();
         }
-
+        if (cl.hasOption("I")) {
+            imports = cl.getOptionValue("I");
+        }
+        // output Format
+        if (cl.hasOption("F")) {
+            outputFormat = cl.getOptionValue("F");
+        }
+        if (!outputFormats.contains(outputFormat)) {
+            FimsPrinter.out.println("Error: invalid output Format");
+            helpf.printHelp("fims ", options, true);
+            return;
+        }
         if (cl.hasOption("configFile")) {
             configFile = cl.getOptionValue("configFile");
         }
 
+        // if the sparql option is specified then we are going to go ahead and just run the query and return
+        // results.  No configuration file is necessary
+        if (cl.hasOption("sparql")) {
+
+            String outputFile = outputDirectory + filename + ".csv";
+            try {
+                runQuery(inputFile, outputFile, cl.getOptionValue("sparql"));
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+            System.out.println("    writing " + outputFile);
+            return;
+        }
+
         if (configFile.isEmpty() || outputDirectory.isEmpty() || inputFile.isEmpty()) {
-            FimsPrinter.out.println("All options are required");
+            FimsPrinter.out.println("Incorrect options");
+            helpf.printHelp("fims ", options, true);
+
             return;
         }
         File config = new File(configFile);
@@ -420,7 +520,34 @@ public class Triplifier {
         processController.addMessages(validation.getMessages());
 
         if (isValid) {
-            Triplifier t = new Triplifier("test", outputDirectory, processController);
+            Triplifier t = new Triplifier(
+                    filename,
+                    outputDirectory,
+                    processController,
+                    true,
+                    defaultLocalURIPrefix,
+                    outputFormat);
+
+            // TODO: come up with a more generic way to set prefixes. for now, these are hardcoded
+            t.setPrefixes(
+                    "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n" +
+                            "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" +
+                            "@prefix ark: <http://biscicol.org/id/ark:> .\n" +
+                            "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n" +
+                            "@prefix dwc: <http://rs.tdwg.org/dwc/terms/> . \n" +
+                            "@prefix dc: <http://purl.org/dc/elements/1.1/> .\n" +
+                            "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" +
+                            "@prefix ppo: <http://www.plantphenology.org/id/> .\n" +
+                            "@prefix obo: <http://purl.obolibrary.org/obo/> .\n");
+            // Add the imports declaration using N3 syntax
+            // TODO: figure out a more standards-worthy way to designate the import declaration instance identifier
+            // TODO: enable multiple imports
+            if (!imports.equals("")) {
+                t.setImports(
+                        "<urn:importInstance> " +
+                                "owl:imports <" + imports + "> .\n");
+            }
+
             ObjectNode resource = (ObjectNode) fimsMetadata.get(0);
             t.run(validation.getSqliteFile(), Lists.newArrayList(resource.fieldNames()));
 
@@ -432,11 +559,52 @@ public class Triplifier {
                     }
                 }
             } else {
-                System.out.println("new Triple file created: " + t.getTripleOutputFile());
+                System.out.println("    writing " + t.getTripleOutputFile());
             }
         } else {
             System.err.println(processController.getMessages().toString());
             System.err.println("Unable to create triples until errors are fixed");
         }
+    }
+
+    /*
+    Simple method to run a query without involving entailments of the FIMSQueryBuilder
+     */
+    private static void runQuery(String inputFile, String outputFile, String sparqlFile) throws Exception {
+        // Create an input Stream to read input File
+        InputStream in = new FileInputStream(new File(inputFile));
+
+        // Create a file output stream to store file output
+        File file = new File(outputFile);
+        FileOutputStream fop = new FileOutputStream(file);
+
+        // Read sparqlFile into String
+        InputStream is = new FileInputStream(sparqlFile);
+        BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+        String line = buf.readLine();
+        StringBuilder sb = new StringBuilder();
+        while (line != null) {
+            sb.append(line).append("\n");
+            line = buf.readLine();
+        }
+        is.close();
+        String queryString = sb.toString();
+
+        // Create model
+        Model model = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF, null);
+        model.read(in, null);
+        in.close();
+
+        // Run query
+        Query query = QueryFactory.create(queryString);
+        QueryExecution qe = QueryExecutionFactory.create(query, model);
+        ResultSet results = qe.execSelect();
+        ResultSetFormatter.outputAsCSV(fop, results);
+        //ResultSetFormatter.out(System.out, results);
+
+        // Close up
+        fop.close();
+        qe.close();
+
     }
 }
