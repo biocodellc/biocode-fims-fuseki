@@ -442,6 +442,10 @@ public class Triplifier {
         // Sanitize project specification
         if (cl.hasOption("o")) {
             outputDirectory = cl.getOptionValue("o");
+            if (!(new File(outputDirectory)).exists()) {
+                System.out.println("output directory " + outputDirectory + "does not exist!");
+                return;
+            }
         }
         if (cl.hasOption("prefix")) {
             defaultLocalURIPrefix = cl.getOptionValue("prefix");
@@ -453,6 +457,10 @@ public class Triplifier {
         if (cl.hasOption("i")) {
             inputFile = cl.getOptionValue("i");
             File inputFileFile = new File(inputFile);
+            if (!inputFileFile.exists()) {
+                System.out.println("input file " + inputFile + " does not exist!");
+                return;
+            }
             filename = inputFileFile.getName();
         }
         if (cl.hasOption("I")) {
@@ -469,6 +477,10 @@ public class Triplifier {
         }
         if (cl.hasOption("configFile")) {
             configFile = cl.getOptionValue("configFile");
+            if (!(new File(configFile).exists())) {
+                System.out.println("configuration file does not exist!");
+                return;
+            }
         }
 
 
