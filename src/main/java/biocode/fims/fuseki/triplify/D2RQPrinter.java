@@ -137,7 +137,10 @@ public class D2RQPrinter {
         pw.println("map:" + getClassMap(entity) + " a d2rq:ClassMap;");
         pw.println("\td2rq:dataStorage " + "map:database;");
         pw.println(getPersistentIdentifierMapping(null, entity));
-        pw.println("\td2rq:class <" + entity.getConceptURI() + ">;");
+
+        // If the concept is set to rdf:type then class names are meant to be taken from a translation table
+        if (!entity.getConceptURI().equalsIgnoreCase("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))
+            pw.println("\td2rq:class <" + entity.getConceptURI() + ">;");
         pw.println("\t.");
 
         // Get a list of colNames that we know are good from the spreadsheet

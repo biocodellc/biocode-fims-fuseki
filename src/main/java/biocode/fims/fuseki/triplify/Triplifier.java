@@ -560,8 +560,9 @@ public class Triplifier {
                 System.out.println("    writing " + t.getTripleOutputFile());
             }
         } else {
-            System.err.println(processController.getMessages().toString());
-            System.err.println("Unable to create triples until errors are fixed");
+            //System.err.println(processController.getMessages().toString());
+            System.err.println(processController.printMessages());
+            System.err.println("    unable to create triples until errors are fixed");
         }
     }
 
