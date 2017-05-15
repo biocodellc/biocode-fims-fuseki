@@ -14,8 +14,12 @@ buildscript {
     }
 }
 
+plugins {
+    id 'com.github.johnrengelman.shadow' version '1.2.4'
+}
 apply plugin: "application"
 apply plugin: "org.biocode.fims-app"
+libsDirName = "../dist"
 
 ext.fimsCommonsVersion = "0.2.0"
 
@@ -94,5 +98,21 @@ run {
 
     if (project.hasProperty("appArgs")) {
         args Eval.me(appArgs)
+    }
+}
+
+shadowJar {
+    //baseName = "${project.name}-triples"
+    baseName = "triplifier"
+    classifier = null
+    version = null
+
+    configurations = [project.configurations.server, project.configurations.runtime]
+
+    append "META-INF/spring.handlers"
+    append "META-INF/spring.schemas"
+
+    manifest {
+        attributes 'Main-Class': 'biocode.fims.fuseki.triplify.Triplifier'
     }
 }
