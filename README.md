@@ -2,7 +2,9 @@
 
 This repo provides the necessary code for uploading and querying [Biocode-FIMS](https://github.com/biocodellc/biocode-fims-commons/) Bcid datasets to an [Apache Fuseki](http://jena.apache.org/documentation/serving_data/) triple-store database for storing datasets as RDF triples. 
 
-The gradlew sripts supplied with this repository can build a self-contained jar file for triplifying data, which is part of the data processing process.   This is run like:
+The gradlew sripts supplied with this repository can build a self-contained jar file for triplifying data, which is part of the data processing process.   Before building this jar, you need to request a maven user/password to store in the gradle.properties file to access some complementary code.
+
+This is run like:
 
 ```
 ./gradlew shadowJar
