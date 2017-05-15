@@ -19,9 +19,8 @@ plugins {
 }
 apply plugin: "application"
 apply plugin: "org.biocode.fims-app"
-libsDirName = "../dist"
 
-ext.fimsCommonsVersion = "0.2.0"
+ext.fimsCommonsVersion = "0.2.6"
 
 fims {
     maven {
@@ -73,6 +72,8 @@ dependencies {
         project.configurations.serverRuntime.dependencies.addAll(it.configurations.serverRuntime.dependencies)
     }
 }
+
+libsDirName = "../dist"
 
 //=============================
 //= application configuration
