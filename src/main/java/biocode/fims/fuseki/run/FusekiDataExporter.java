@@ -1,9 +1,10 @@
 package biocode.fims.fuseki.run;
 
 import biocode.fims.application.config.FimsAppConfig;
+import biocode.fims.application.config.FimsProperties;
 import biocode.fims.config.ConfigurationFileFetcher;
 import biocode.fims.digester.Mapping;
-import biocode.fims.entities.Bcid;
+import biocode.fims.entities.BcidTmp;
 import biocode.fims.entities.Expedition;
 import biocode.fims.entities.Project;
 import biocode.fims.fuseki.query.FimsQueryBuilder;
@@ -29,12 +30,14 @@ import java.util.*;
  */
 public class FusekiDataExporter {
     private ProjectService projectService;
+    private final int naan;
     private BcidService bcidService;
     private Map<Integer, List<String>> failedExports = new LinkedHashMap<>();
 
-    FusekiDataExporter(BcidService bcidService, ProjectService projectService) {
+    FusekiDataExporter(BcidService bcidService, ProjectService projectService, int naan) {
         this.bcidService = bcidService;
         this.projectService = projectService;
+        this.naan = naan;
     }
 
 
@@ -76,7 +79,7 @@ public class FusekiDataExporter {
 
         // we need to fetch each Expedition individually as the SheetUniqueKey is only unique on the Expedition level
         for (Expedition expedition : expeditions) {
-            for (Bcid bcid : bcidService.getDatasets(projectId, expedition.getExpeditionCode())) {
+            for (BcidTmp bcid : bcidService.getDatasets(projectId, expedition.getExpeditionCode())) {
                 try {
                     // only update bcids w/o a sourceFile set and graph != null
                     if (StringUtils.isBlank(bcid.getSourceFile()) && bcid.getGraph() != null) {
@@ -84,7 +87,8 @@ public class FusekiDataExporter {
                         FimsQueryBuilder q = new FimsQueryBuilder(
                                 mapping,
                                 new String[]{bcid.getGraph()},
-                                System.getProperty("java.io.tmpdir"));
+                                System.getProperty("java.io.tmpdir"),
+                                naan);
 
                         File sourceFile = new File(q.writeCSV(false));
                         String oFilename = "fims_metadata_bcid_id_" + bcid.getBcidId() + ".csv";
@@ -114,6 +118,7 @@ public class FusekiDataExporter {
         ApplicationContext applicationContext = new AnnotationConfigApplicationContext(FimsAppConfig.class);
         ProjectService projectService = applicationContext.getBean(ProjectService.class);
         BcidService bcidService = applicationContext.getBean(BcidService.class);
+        FimsProperties props = applicationContext.getBean(FimsProperties.class);
 
         String output_directory = null;
         String projectUrl = null;
@@ -167,7 +172,7 @@ public class FusekiDataExporter {
         if (!continueOperation) {
             return;
         }
-        FusekiDataExporter dataExporter = new FusekiDataExporter(bcidService, projectService);
+        FusekiDataExporter dataExporter = new FusekiDataExporter(bcidService, projectService, props.naan());
 
         dataExporter.start(output_directory, projectUrl, projectId);
     }

@@ -1,5 +1,6 @@
 package biocode.fims.fuseki.run;
 
+import biocode.fims.application.config.FimsProperties;
 import biocode.fims.config.ConfigurationFileEsMapper;
 import biocode.fims.config.ConfigurationFileFetcher;
 import biocode.fims.digester.Mapping;
@@ -41,16 +42,16 @@ public class BiscicolFusekiToESMigrator {
     private Map<Integer, List<String>> failedIndexes = new LinkedHashMap<>();
     private Map<Integer, LinkedHashMap<String, Integer>> totalResources = new LinkedHashMap<>();
     private MessageSource messageSource;
-    private SettingsManager settingsManager;
+    private final FimsProperties props;
 
     BiscicolFusekiToESMigrator(ExpeditionService expeditionService, BcidService bcidService, ProjectService projectService,
-                               Client esClient, MessageSource messageSource, SettingsManager settingsManager) {
+                               Client esClient, MessageSource messageSource, FimsProperties props) {
         this.expeditionService = expeditionService;
         this.bcidService = bcidService;
         this.projectService = projectService;
         this.esClient = esClient;
         this.messageSource = messageSource;
-        this.settingsManager = settingsManager;
+        this.props = props;
     }
 
     /**
@@ -109,9 +110,9 @@ public class BiscicolFusekiToESMigrator {
         // we need to fetch each Expedition individually as the SheetUniqueKey is only unique on the Expedition level
         for (Expedition expedition : expeditions) {
             try {
-                FusekiFimsMetadataPersistenceManager persistenceManager = new FusekiFimsMetadataPersistenceManager(expeditionService, bcidService, settingsManager);
+                FusekiFimsMetadataPersistenceManager persistenceManager = new FusekiFimsMetadataPersistenceManager(expeditionService, bcidService, props);
                 FimsMetadataFileManager fimsMetadataFileManager = new FimsMetadataFileManager(
-                        persistenceManager, SettingsManager.getInstance(), expeditionService, bcidService, messageSource);
+                        persistenceManager, props, expeditionService, bcidService, messageSource);
 
 
                 ProcessController processController = new ProcessController(projectId, expedition.getExpeditionCode());

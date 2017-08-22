@@ -2,17 +2,13 @@ package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Attribute;
 import biocode.fims.digester.Mapping;
-import biocode.fims.query.writers.QueryWriter;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hp.hpl.jena.rdf.model.*;
-import com.hp.hpl.jena.rdf.model.impl.StmtIteratorImpl;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 
 /**
  * TODO: look at PPO-Fims PPOFimsModel class if we want to use this class. That was a refactoring of this class, removing recursion problems

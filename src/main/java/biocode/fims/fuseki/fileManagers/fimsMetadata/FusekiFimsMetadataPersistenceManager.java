@@ -1,6 +1,7 @@
 package biocode.fims.fuseki.fileManagers.fimsMetadata;
 
-import biocode.fims.entities.Bcid;
+import biocode.fims.application.config.FimsProperties;
+import biocode.fims.entities.BcidTmp;
 import biocode.fims.fileManagers.fimsMetadata.AbstractFimsMetadataPersistenceManager;
 import biocode.fims.fileManagers.fimsMetadata.FimsMetadataPersistenceManager;
 import biocode.fims.fuseki.Uploader;
@@ -30,8 +31,8 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
 
     @Autowired
     public FusekiFimsMetadataPersistenceManager(ExpeditionService expeditionService, BcidService bcidService,
-                                                SettingsManager settingsManager) {
-        super(settingsManager);
+                                                FimsProperties props) {
+        super(props);
         this.expeditionService = expeditionService;
         this.bcidService = bcidService;
     }
@@ -88,18 +89,18 @@ public class FusekiFimsMetadataPersistenceManager extends AbstractFimsMetadataPe
     }
 
     private ArrayNode fetchLatestDataset(ProcessController processController) {
-        List<Bcid> datasetBcids = bcidService.getFimsMetadataDatasets(processController.getProjectId(), processController.getExpeditionCode());
+//        List<BcidTmp> datasetBcids = bcidService.getFimsMetadataDatasets(processController.getProjectId(), processController.getExpeditionCode());
 
         ArrayNode fimsMetadata = new SpringObjectMapper().createArrayNode();
 
-        if (!datasetBcids.isEmpty()) {
-            FimsQueryBuilder q = new FimsQueryBuilder(
-                    processController.getMapping(),
-                    new String[]{datasetBcids.get(0).getGraph()},
-                    processController.getOutputFolder());
+//        if (!datasetBcids.isEmpty()) {
+//            FimsQueryBuilder q = new FimsQueryBuilder(
+//                    processController.getMapping(),
+//                    new String[]{datasetBcids.get(0).getGraph()},
+//                    processController.getOutputFolder());
 
-            fimsMetadata.addAll(q.getJSON());
-        }
+//            fimsMetadata.addAll(q.getJSON());
+//        }
 
         return fimsMetadata;
     }

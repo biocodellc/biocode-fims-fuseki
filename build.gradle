@@ -20,7 +20,7 @@ plugins {
 apply plugin: "application"
 apply plugin: "org.biocode.fims-app"
 
-ext.fimsCommonsVersion = "0.2.6"
+ext.fimsCommonsVersion = "0.2.11"
 
 fims {
     maven {

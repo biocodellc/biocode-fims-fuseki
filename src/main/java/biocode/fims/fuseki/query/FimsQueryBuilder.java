@@ -1,7 +1,6 @@
 package biocode.fims.fuseki.query;
 
 import biocode.fims.digester.Mapping;
-import biocode.fims.query.writers.QueryWriter;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hp.hpl.jena.query.*;
 import com.hp.hpl.jena.rdf.model.*;
@@ -35,12 +34,13 @@ public class FimsQueryBuilder {
     String graphArray[];
     Mapping mapping;
     String sparqlServer;
+    private final int naan;
     String outputDirectory;// = System.getProperty("user.dir") + File.separator + "tripleOutput";
 
     // ArrayList of filter conditions
     private ArrayList<FimsFilterCondition> filterArrayList = new ArrayList<FimsFilterCondition>();
 
-    public FimsQueryBuilder(Mapping mapping, String[] graphArray, String outputDirectory) {
+    public FimsQueryBuilder(Mapping mapping, String[] graphArray, String outputDirectory, int naan) {
         this.mapping = mapping;
         this.outputDirectory = outputDirectory;
 
@@ -48,6 +48,7 @@ public class FimsQueryBuilder {
 
         // Build the "query" location for SPARQL queries
         sparqlServer = mapping.getMetadata().getQueryTarget().toString() + "/query";
+        this.naan = naan;
     }
 
     /**
@@ -241,7 +242,7 @@ public class FimsQueryBuilder {
             logger.error("", e);
         }
 
-        TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, justData);
+        TemplateProcessor t = new TemplateProcessor(projectId, outputDirectory, justData, naan);
         String filepath = t.createExcelFileFromExistingSources("Samples", outputDirectory).getAbsolutePath();
 
         fimsModel.close();
